@@ -79,6 +79,7 @@ common_nouns:
   - developer
   - dispatcher
   - downgrade
+  - duplicate
   - duration
   - election
   - embedding
@@ -110,8 +111,8 @@ common_nouns:
   - heartbeat
   - histogram
   - hook
-  - identifier
   - idempotent
+  - identifier
   - index
   - inference
   - instance
@@ -153,6 +154,7 @@ common_nouns:
   - operator
   - output
   - overflow
+  - overhead
   - package
   - parser
   - partition
@@ -205,7 +207,9 @@ common_nouns:
   - scope
   - second
   - secret
+  - segment
   - selector
+  - sequence
   - server
   - shard
   - side effect
@@ -217,6 +221,7 @@ common_nouns:
   - span
   - spy
   - stack trace
+  - status
   - stream
   - stub
   - suite
@@ -235,6 +240,7 @@ common_nouns:
   - trace
   - training
   - transaction
+  - transfer
   - type
   - type check
   - upgrade

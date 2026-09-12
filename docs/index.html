@@ -1,8 +1,9 @@
+<meta charset="utf-8">
 <title>PSTE</title>
 <meta name="description" content="Programming Simplified Technical English: a controlled English for prose about software, with a before-and-after comparison and the eval corpus.">
 <link rel="stylesheet" href="style.css">
 
-<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Eval runs</a> <a href="index.html#get-pste">Get PSTE</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="install.html">Install</a> <a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Test runs</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
 
 <div class="wrap">
 
@@ -53,6 +54,42 @@
 
 <p>The rewrite fixed all four. "Does not" replaced the contraction. The em dash became two sentences. The long sentence split into a short sentence and a list. The four places became four list items.</p>
 
+<h2>Controlling agent output (experimental)</h2>
+
+<p>Every example above is a document. PSTE also controls something else: the text an agent writes back to you, turn after turn, inside a conversation. This use is experimental, not tested the way the document case is.</p>
+
+<p>It costs far more context. A fifty-turn measurement also found more violations, at a less steady rate, than one document pass gets. <a href="validation.html#conversation">Read the measurement</a>.</p>
+
+<p>Below, two agents respond to the same opening question from a real eight-turn conversation: "How does HTTP work when I type a URL into the browser and hit enter?" One agent was forbidden from reading the rules. The other read them first. Compare the register, not the facts.</p>
+
+<div class="compare turns">
+  <div class="col before">
+    <div class="label">Without PSTE</div>
+    <div class="text">A bunch of stuff happens fast. First the browser parses the URL to pull out the scheme, host, port, and path. Then it needs an IP address for that host, so it does a DNS lookup — checks its own cache, then the OS cache, then asks a resolver (usually your ISP&#x27;s or something like 1.1.1.1) which walks the DNS hierarchy if it doesn&#x27;t already know the answer. <!-- pste-lint: ignore -->
+
+Once it has an IP, the browser opens a TCP connection to that address on port 443 (or 80 for plain HTTP). That&#x27;s the three-way handshake. If it&#x27;s HTTPS — which is almost everything now — a TLS handshake happens on top of that TCP connection to negotiate encryption and verify the server&#x27;s certificate. <!-- pste-lint: ignore -->
+
+With a secure channel established, the browser sends an HTTP request: a method like GET, the path, headers (cookies, user-agent, accept-encoding, etc.), and a body if there is one. The server processes that, maybe hits a database, renders something, and sends back a response — a status code, headers, and a body, usually HTML. <!-- pste-lint: ignore -->
+
+The browser then parses that HTML, discovers it needs more resources (CSS, JS, images), and fires off more requests for those, often reusing the same TCP connection since HTTP/1.1 and later support keep-alive. Then it builds the DOM, runs layout, paints pixels, executes scripts. That&#x27;s the whole pipeline, DNS to pixels. Want me to go deeper on any one stage? <!-- pste-lint: ignore --></div>
+  </div>
+  <div class="col after">
+    <div class="label">With PSTE</div>
+    <div class="text">The browser turns the domain name into an IP address, opens a connection to the server, and sends an HTTP request over it. Four steps happen in order. <!-- pste-lint: ignore -->
+
+1. The browser checks its cache for the IP address of the domain. If the cache has no entry, the browser asks a DNS resolver. <!-- pste-lint: ignore -->
+2. The browser opens a TCP connection to that IP address, on port 443 for HTTPS. This step is the handshake. <!-- pste-lint: ignore -->
+3. The browser and the server run a TLS handshake over the TCP connection. This step agrees on encryption keys and checks the identity of the server. <!-- pste-lint: ignore -->
+4. The browser sends the HTTP request inside the encrypted connection. The server sends back a status code, headers, and the body. <!-- pste-lint: ignore -->
+
+The browser reads the response, then renders the HTML. A page with embedded images, scripts, or fonts causes more requests, one per resource. Many of these requests reuse the same connection, so they skip steps 2 and 3. <!-- pste-lint: ignore -->
+
+I did not cover HTTP/3, which replaces TCP with QUIC. The flow above holds for HTTP/1.1 and HTTP/2, which still run over TCP. <!-- pste-lint: ignore --></div>
+  </div>
+</div>
+
+<p>One question, one model, one topic. This shows the register a reader gets, not that a reader understands the response better. <a href="examples.html">See the same effect hold across the full eight-turn conversation</a>, with the measurements.</p>
+
 <h2 id="get-pste">Get PSTE</h2>
 
 <p>PSTE is a plugin for Claude Code. The repository is also a plugin marketplace, so two
@@ -61,21 +98,7 @@ commands install it. Run them inside Claude Code:</p>
 <pre><code>/plugin marketplace add hiniko/PSTE
 /plugin install pste@hiniko</code></pre>
 
-<p>The first command adds the marketplace. The second installs the plugin from it. To get a
-later version, run <code>/plugin marketplace update</code>.</p>
-
-<p>The plugin carries the skill, the <code>/pste</code> command, and two hooks. The hooks
-keep the rules active across a long session.</p>
-
-<p>You can also install the skill by hand. Clone <a href="https://github.com/hiniko/PSTE">hiniko/PSTE</a>.
-Then copy <code>skill/</code> into your Claude Code skills directory as <code>pste/</code>.
-The path ends <code>pste/SKILL.md</code>.</p>
-
-<p>Once the skill is active, run <code>/pste on</code> or <code>/pste off</code>.
-There is one standard, and every rule in it applies.</p> <!-- pste-lint: ignore -->
-
-<p>The checker is a single Python file at <code>evals/pste_lint.py</code>. It needs no
-third-party package and no install step.</p>
+<p>The first command adds the marketplace. The second installs the plugin from it. <a href="install.html">The Install page</a> covers the hand-install path, turning the skill on, and what it costs in context.</p>
 
 <div class="honest">
 

@@ -36,7 +36,7 @@ PSTE-G6,0.5,`MUST` rule governing grammar: an -ing main verb is a form fault. Th
 PSTE-G7,0.5,`MUST` rule governing grammar: a nominalization restates the same action as a noun. The rule's own example adds and removes no fact.
 PSTE-G8,0.5,"`MUST` rule governing grammar: a phrasal verb has a single-verb replacement in Appendix C, so the meaning survives and only the form changes."
 PSTE-G9,0.5,"`MUST` rule governing grammar: a missing article is a grammar fault. Either way, the rule's own example states the same fact."
-PSTE-G10,0.1,"Checker runs this at `SHOULD`. It flags a common and often-correct pattern for a human to check, and does not fail a document on a hit alone."
+PSTE-G10,0.1,"A rule check runs this at `SHOULD`. It flags a common and often-correct pattern for a human to check, and does not fail a document on a hit alone."
 PSTE-G11,0.5,"`MUST` rule governing grammar: too many adjectives is a parsing-load fault for a non-native reader, not a lost fact."
 PSTE-G12,0.5,`MUST` rule governing grammar: wrong adjective order reads as wrong without changing what the adjectives describe.
 PSTE-N1,0.5,"`MUST` rule governing sentence form: an instruction over the word limit is a length fault, not a dropped fact."

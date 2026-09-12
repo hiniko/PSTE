@@ -101,7 +101,7 @@ header.site {
   justify-content: space-between;
   max-width: 46rem;
   margin: 0 auto;
-  padding: 1.5rem 1.5rem 1rem;
+  padding: 1.5rem 1.5rem 0.7rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -151,6 +151,9 @@ h1, h2, h3 {
   font-weight: 600;
 }
 h1 { font-size: 2.1rem; margin: 2.2rem 0 0.6rem; }
+/* The first thing in the page body sits under the site header, which
+   already separates it. A top margin there only adds to that gap. */
+.wrap > :first-child { margin-top: 0; }
 h2 { font-size: 1.45rem; margin: 2.6rem 0 0.8rem; }
 h3 { font-size: 1.1rem; margin: 1.8rem 0 0.6rem; }
 
@@ -171,7 +174,10 @@ li { margin-bottom: 0.3rem; }
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 0.2rem 0.55rem;
-  margin-bottom: 1.4rem;
+  /* A paragraph carries a top margin by default. Under the header that margin
+     stacks with the header's own padding and the h1's, and the three together
+     pushed the first heading most of a screen down on a short viewport. */
+  margin: 0.5rem 0 0.4rem;
 }
 
 code, pre, kbd {
@@ -247,7 +253,8 @@ blockquote {
 }
 .compare .before { background: var(--diff-del-bg); color: var(--diff-del-text); }
 .compare .after { background: var(--diff-add-bg); color: var(--diff-add-text); }
-.compare pre, .compare .text {
+.compare.turns .col { background: var(--bg-raised); color: var(--text); }
+.compare pre, .compare .text, .panel > .text {
   font-family: var(--font-mono);
   font-size: 0.84rem;
   line-height: 1.55;
@@ -347,6 +354,8 @@ table.numbers th.n { text-align: right; }
 }
 .panel .meta span { margin-right: 0.9rem; }
 .panel .attribution { font-size: 0.82rem; color: var(--muted); margin-top: 0.8rem; }
+.panel .turn-q { margin-bottom: 0.8rem; }
+.panel > .text { margin-bottom: 1rem; }
 .missing { color: var(--muted); font-style: italic; }
 
 /* spec.html: the rendered specification. Wider than the other pages, because

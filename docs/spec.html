@@ -1,8 +1,9 @@
+<meta charset="utf-8">
 <title>PSTE-1: the specification</title>
 <meta name="description" content="PSTE-1, the full specification, rendered as a page: every rule, its identifier, and its weight.">
 <link rel="stylesheet" href="style.css">
 
-<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Eval runs</a> <a href="index.html#get-pste">Get PSTE</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="install.html">Install</a> <a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Test runs</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
 
 <div class="wrap spec">
 
@@ -122,7 +123,7 @@
 
 <h3 id="41-why-a-weight-exists">4.1 Why a weight exists</h3>
 
-<p>A count of findings alone treats a dropped negation and a missing hyphen as one fault each. That measures nothing useful.</p>
+<p>A count of violations alone treats a dropped negation and a missing hyphen as one fault each. That measures nothing useful.</p>
 
 <p>A writer who removes a condition sends the next reader down the wrong path. A writer who omits a hyphen costs that reader one extra glance at the sentence. The two faults do not cost a reader the same thing.</p>
 
@@ -142,7 +143,7 @@
 
 <h3 id="44-how-a-tool-uses-the-weight">4.4 How a tool uses the weight</h3>
 
-<p>A tool <code>MAY</code> compute a weighted sum of findings, by adding each finding's rule weight instead of adding one per finding. A maintainer uses the sum to compare documents, or to compare a change.</p>
+<p>A tool <code>MAY</code> compute a weighted sum of violations, by adding each violation's rule weight instead of adding one per violation. A maintainer uses the sum to compare documents, or to compare a change.</p>
 
 <hr>
 
@@ -408,7 +409,7 @@
 
 <p id="PSTE-G10"><strong>PSTE-G10</strong>: A writer <code>MUST NOT</code> use gendered pronouns for a person whose pronouns the writer does not know. Use "they".</p>
 
-<p><em>Weight: 0.1.</em> Checker runs this at <code>SHOULD</code>. It flags a common and often-correct pattern for a human to check, and does not fail a document on a hit alone.</p>
+<p><em>Weight: 0.1.</em> A rule check runs this at <code>SHOULD</code>. It flags a common and often-correct pattern for a human to check, and does not fail a document on a hit alone.</p>
 
 <p id="PSTE-G11"><strong>PSTE-G11</strong>: A writer <code>MUST NOT</code> write more than two adjectives before a noun. Write "a small red button", not "a small round red plastic button".</p>
 
@@ -648,7 +649,7 @@
 
 <ul><li><strong><a href="https://github.com/hiniko/PSTE/blob/main/spec/appendix-a.md">Appendix A</a></strong> — Approved words (normative).</li><li><strong><a href="https://github.com/hiniko/PSTE/blob/main/spec/appendix-c.md">Appendix C</a></strong> — Words to avoid, and their approved alternatives (informative).</li><li><strong><a href="https://github.com/hiniko/PSTE/blob/main/spec/conformance/README.md">Appendix D</a></strong> — Conformance test cases.</li><li><strong><a href="https://github.com/hiniko/PSTE/blob/main/spec/appendix-t.md">Appendix T</a></strong> — Obligations on a tool (informative).</li></ul> <!-- pste-lint: ignore -->
 
-<p>Appendices A and C are generated from <code>wordlist.yaml</code> by <code>lib/build_appendix.py</code>. Edit the YAML files, then run that script. The checker reads the same YAML, so this specification and the checker cannot disagree about which words are approved.</p>
+<p>Appendices A and C are generated from <code>spec/wordlist.yaml</code>. Appendix T states how a person regenerates them.</p>
 
 </div>
 

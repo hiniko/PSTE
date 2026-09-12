@@ -44,7 +44,7 @@ the purpose of keeping one set of cases for both.
 
 ## Exemptions
 
-The linter MUST NOT report a finding for:
+The linter MUST NOT report a violation for:
 
 - Text inside a fenced code block
 - Text inside a code span
@@ -58,5 +58,5 @@ The linter MUST NOT report a finding for:
 A counter-example that puts the negation and the quoted phrase on different lines is not
 detected. Use `pste-lint: ignore` on such a line.
 
-The checker measures rule conformance. It does not measure readability, and it does not
+The rule check measures rule conformance. It does not measure readability, and it does not
 measure quality. A clean report is necessary, but not enough on its own.

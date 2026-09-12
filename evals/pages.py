@@ -53,6 +53,7 @@ DOCS_DIR = os.path.join(ROOT, "docs")
 DOCS_RESULTS_DIR = os.path.join(DOCS_DIR, "results")
 SPEC_DIR = os.path.join(ROOT, "spec")
 SPEC_MD = os.path.join(SPEC_DIR, "PSTE-1.md")
+DEEP_DIVE_SESSION = os.path.join(ROOT, "evals", "sessions", "http-deep-dive.json")
 # PSTE has one level now. report.py still writes the page under the old
 # "-level3.html" name — the same suffix the two-level tool used for its
 # stricter page — so an existing results directory needs no file renamed.
@@ -129,17 +130,18 @@ def render(runs):
             "</tr>"
         )
 
-    return f"""<title>Eval runs</title>
+    return f"""<meta charset="utf-8">
+<title>Test runs</title>
 <meta name="description" content="Every committed PSTE conformance run. Each row shows its commit, its arms, its models, and its pages.">
 <link rel="stylesheet" href="../style.css">
 
-<header class="site"><div class="brand"><a href="../index.html">PSTE</a></div><nav class="top"><a href="../examples.html">Examples</a> <a href="../spec.html">Specification</a> <a href="../validation.html">Validation</a> <a href="index.html">Eval runs</a> <a href="../index.html#get-pste">Get PSTE</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+<header class="site"><div class="brand"><a href="../index.html">PSTE</a></div><nav class="top"><a href="../install.html">Install</a> <a href="../examples.html">Examples</a> <a href="../spec.html">Specification</a> <a href="../validation.html">Validation</a> <a href="index.html">Test runs</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
 
 <div class="wrap">
 
-<h1>PSTE eval runs</h1>
+<h1>PSTE test runs</h1>
 
-<p class="lede">This list holds every committed conformance run. Each row links to the pages that show a run's own documents and findings.</p>
+<p class="lede">This list holds every committed conformance run. Each row links to the pages that show a run's own documents and violations.</p>
 
 <div class="honest">
 <p>{html.escape(DISCLAIMER)}</p>
@@ -248,6 +250,75 @@ def latest_eval_documents(directory=RESULTS_DIR):
     return os.path.splitext(os.path.basename(path))[0], data.get("results", {})
 
 
+def render_turns_section(session_path=DEEP_DIVE_SESSION):
+    """The second Examples section: one agent's eight-turn conversation.
+
+    Reads evals/sessions/http-deep-dive.json directly, the same rule
+    render_examples() follows for the corpus: a reader never sees a hand-typed
+    copy of a saved record. Each panel shows only the question and the two
+    answers, side by side, verbatim — no findings count, no per-100-words
+    figure, inside the panel. The measured result is prose, once, near the
+    heading (from session["summary"]), not repeated per turn. A second
+    switcher (see docs/switcher.js) scopes to THIS section's own <select>, so
+    it cannot touch the corpus dropdown's panels, and the other way round.
+    """
+    with open(session_path, encoding="utf-8") as fh:
+        session = json.load(fh)
+
+    def _as_html(text):
+        # A marker on every line, not just every paragraph: a numbered list
+        # item is its own line (single "\n"), not its own paragraph, and
+        # without a per-line marker, pste_lint.py reads two list items joined
+        # by one blank-free newline as a single run-on sentence.
+        return "\n".join(
+            (html.escape(line) + " <!-- pste-lint: ignore -->") if line else ""
+            for line in text.split("\n")
+        )
+
+    tabs, panels = [], []
+    for i, turn in enumerate(session["turns"]):
+        tabs.append(
+            f'<option value="panel-turn-{i}"{" selected" if i == 0 else ""}>'
+            f'Turn {i + 1}</option>'
+        )
+        compare = (
+            '<div class="compare turns">'
+            '<div class="col before"><div class="label">Without PSTE</div>'
+            f'<div class="text">{_as_html(turn["control"])}</div></div>'
+            '<div class="col after"><div class="label">With PSTE</div>'
+            f'<div class="text">{_as_html(turn["answer"])}</div></div>'
+            "</div>"
+        )
+        panels.append(
+            f'<div class="panel" id="panel-turn-{i}"'
+            f'{"" if i == 0 else " hidden"}>'
+            f'<p class="turn-q"><strong>Q:</strong> {html.escape(turn["question"])}</p> <!-- pste-lint: ignore -->'
+            f"{compare}"
+            "</div> <!-- pste-lint: ignore -->"
+        )
+
+    summary = session["summary"]
+    return f"""<h2>An agent in conversation (experimental)</h2>
+
+<p class="lede">Eight questions, one real session, from <code>{html.escape(os.path.basename(session_path))}</code>. Each panel shows both answers to the same question, side by side.</p>
+
+<p>This use of PSTE is experimental, not tested the way the corpus above is. It costs far more context than one document pass. A fifty-turn measurement also found more violations here, at a rate that rises across the early turns before it settles. <a href="validation.html#conversation">Read the measurement</a>.</p>
+
+<p>The questions came from a separate agent that never read the rules and could not mention writing or style. Each arm answered the same eight questions in one pass, and neither arm revised a response afterward. The second arm never read the first arm's responses.</p>
+
+<table class="numbers"><thead><tr><th></th><th class="n">Words</th><th class="n">Violations</th><th class="n">Per 100 words</th></tr></thead><tbody><tr><td>Without PSTE</td><td class="n">{summary['control']['words']}</td><td class="n">{summary['control']['findings']}</td><td class="n">{summary['control']['per_100w']}</td></tr><tr><td>With PSTE</td><td class="n">{summary['pste']['words']}</td><td class="n">{summary['pste']['findings']}</td><td class="n">{summary['pste']['per_100w']}</td></tr></tbody></table> <!-- pste-lint: ignore -->
+
+<p>This shows the register held across eight turns. It does not show that a reader understands the text better: one session, one model, one topic. <a href="https://github.com/hiniko/PSTE/blob/main/evals/FUTURE-WORK.md">Read the trial design that would test comprehension</a>.</p>
+
+<section class="switcher-section">
+
+<div class="switcher"><label for="turn-select">Turn</label><select id="turn-select">{"".join(tabs)}</select></div> <!-- pste-lint: ignore -->
+
+{chr(10).join(panels)}
+
+</section>"""
+
+
 def render_examples(documents, eval_results, run_name=None):
     """The examples page: the standard working, side by side, on every
     document in the corpus that the latest eval run judged.
@@ -312,17 +383,20 @@ def render_examples(documents, eval_results, run_name=None):
 
     run_note = (
         f'<p class="lede">The excerpts below come from <code>{html.escape(run_name)}</code>, '
-        "the newest full-corpus eval run. The first long paragraph of each document "
+        "the newest full-corpus test run. The first long paragraph of each document "
         "stands beside the same paragraph after the skill and a fix pass rewrote it.</p>"
         if run_name
-        else '<p class="lede">No eval run has judged the corpus yet.</p>'
+        else '<p class="lede">No test run has judged the corpus yet.</p>'
     )
 
-    return f"""<title>Examples</title>
-<meta name="description" content="The PSTE skill working on 13 documents, source beside rewrite.">
+    turns_section = render_turns_section()
+
+    return f"""<meta charset="utf-8">
+<title>Examples</title>
+<meta name="description" content="The PSTE skill on 13 documents, source beside rewrite.">
 <link rel="stylesheet" href="style.css">
 
-<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Eval runs</a> <a href="index.html#get-pste">Get PSTE</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="install.html">Install</a> <a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Test runs</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
 
 <div class="wrap">
 
@@ -330,9 +404,15 @@ def render_examples(documents, eval_results, run_name=None):
 
 {run_note}
 
+<section class="switcher-section">
+
 <div class="switcher"><label for="doc-select">Document</label><select id="doc-select">{"".join(tabs)}</select></div> <!-- pste-lint: ignore -->
 
 {chr(10).join(panels)}
+
+</section>
+
+{turns_section}
 
 </div>
 
@@ -648,11 +728,12 @@ def render_spec_html(markdown_text):
 def render_spec(markdown_text):
     """The full spec.html page: header, nav, the rendered spec, footer."""
     body = render_spec_html(markdown_text)
-    return f"""<title>PSTE-1: the specification</title>
+    return f"""<meta charset="utf-8">
+<title>PSTE-1: the specification</title>
 <meta name="description" content="PSTE-1, the full specification, rendered as a page: every rule, its identifier, and its weight.">
 <link rel="stylesheet" href="style.css">
 
-<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Eval runs</a> <a href="index.html#get-pste">Get PSTE</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="install.html">Install</a> <a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Test runs</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
 
 <div class="wrap spec">
 
@@ -808,18 +889,58 @@ def self_test():
         # The switcher needs one option and one panel per document, and only
         # the first panel starts visible so a reader is never shown them all
         # at once. The page ships in that state, so it reads correctly before
-        # switcher.js runs and with scripting off entirely.
-        assert examples.count("<option ") == 3, examples
-        assert examples.count('class="panel"') == 3, examples
-        assert examples.count(" hidden>") == 2, \
-            "only the first panel may lack the hidden attribute"
+        # switcher.js runs and with scripting off entirely. The page also
+        # carries a second, independent switcher for the 8 conversation
+        # turns (render_turns_section), so every count below is the corpus's
+        # 3 plus the turns' 8.
+        assert examples.count("<option ") == 11, examples
+        assert examples.count('class="panel"') == 11, examples
+        assert examples.count(" hidden>") == 9, \
+            "only the first panel of each section may lack the hidden attribute"
         # Every option must address a panel that exists, or the dropdown
         # selects nothing and the page goes blank.
         for i in range(3):
             assert f'<option value="panel-{i}"' in examples, examples
             assert f'id="panel-{i}"' in examples, examples
-        assert examples.count(" selected>") == 1, \
-            "exactly one option starts selected"
+        for i in range(8):
+            assert f'<option value="panel-turn-{i}"' in examples, examples
+            assert f'id="panel-turn-{i}"' in examples, examples
+        # Exactly one option per dropdown starts selected: 2 dropdowns, 2
+        # selected options total, never 0 (a blank page) or 2 in one section.
+        assert examples.count(" selected>") == 2, \
+            "exactly one option per switcher starts selected"
+
+        # render_turns_section reads the real saved session, so the question
+        # and answer text on the page must be the verbatim JSON, and the
+        # reported numbers must be the ones FUTURE-WORK and the landing page
+        # both cite.
+        with open(DEEP_DIVE_SESSION, encoding="utf-8") as fh:
+            deep_dive = json.load(fh)
+        assert len(deep_dive["turns"]) == 8, deep_dive
+        assert html.escape(deep_dive["turns"][0]["question"]) in examples, \
+            "turn 1's question must appear verbatim"
+        first_answer_line = deep_dive["turns"][0]["answer"].split("\n")[0]
+        assert html.escape(first_answer_line) in examples, \
+            "turn 1's answer (the PSTE arm) must appear verbatim"
+        first_control_line = deep_dive["turns"][0]["control"].split("\n")[0]
+        assert html.escape(first_control_line) in examples, \
+            "turn 1's control (the no-PSTE arm) must appear verbatim"
+        summary = deep_dive["summary"]
+        assert str(summary["pste"]["per_100w"]) in examples, \
+            "the summary per-100-words figure must be on the page, once, as prose"
+        assert str(summary["control"]["words"]) in examples, \
+            "the summary word count must be on the page"
+        # No panel may contain a findings count or a per-100-words figure: the
+        # measured result is prose outside the panels, not repeated per turn.
+        panel_blocks = re.findall(
+            r'<div class="panel" id="panel-turn-\d+".*?</div> <!-- pste-lint: ignore -->',
+            examples, re.S)
+        assert len(panel_blocks) == 8, panel_blocks
+        for block in panel_blocks:
+            assert "Findings" not in block, block
+            assert "per_100w" not in block and "per 100 words" not in block.lower(), block
+        assert "checker" not in examples.lower() and "linter" not in examples.lower(), \
+            "reader-facing prose on this page must say violations, not checker/linter"
 
         # sync_results_dir: copies JSON and HTML, skips index.html, and clears
         # a stale file from a previous copy that no longer exists in the source.

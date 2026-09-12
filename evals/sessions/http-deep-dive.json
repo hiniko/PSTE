@@ -1,0 +1,164 @@
+{
+  "id": "session-2026-09-12-http-deep-dive",
+  "date": "2026-09-12",
+  "commit": "40dbd48",
+  "cli": "2.1.270 (Claude Code)",
+  "model": "claude-sonnet-5",
+  "purpose": "Does the register hold over a long conversation, with no checker correcting the writer?",
+  "method": {
+    "questions": "Written by a separate agent that never read skill/SKILL.md and was forbidden to mention writing, style or clarity, so the questions cannot prompt a particular register.",
+    "answers": "One agent read skill/SKILL.md, then answered all eight in order, in one pass. It never ran the checker. It did not revise an earlier answer after writing a later one.",
+    "measurement": "evals/pste_lint.py --json on each answer on its own. A mean over the whole transcript hides a slope, so the first four turns are compared against the last four.",
+    "control": "A second agent answered the same eight questions in its own voice. A rule forbade it from reading the standard, and from reading the other arm's answers, so neither could shape its register."
+  },
+  "turns": [
+    {
+      "question": "how does http actually work when i type a url into the browser and hit enter",
+      "answer": "The browser turns the domain name into an IP address, opens a connection to the server, and sends an HTTP request over it. Four steps happen in order.\n\n1. The browser checks its cache for the IP address of the domain. If the cache has no entry, the browser asks a DNS resolver.\n2. The browser opens a TCP connection to that IP address, on port 443 for HTTPS. This step is the handshake.\n3. The browser and the server run a TLS handshake over the TCP connection. This step agrees on encryption keys and checks the identity of the server.\n4. The browser sends the HTTP request inside the encrypted connection. The server sends back a status code, headers, and the body.\n\nThe browser reads the response, then renders the HTML. A page with embedded images, scripts, or fonts causes more requests, one per resource. Many of these requests reuse the same connection, so they skip steps 2 and 3.\n\nI did not cover HTTP/3, which replaces TCP with QUIC. The flow above holds for HTTP/1.1 and HTTP/2, which still run over TCP.",
+      "control": "A bunch of stuff happens fast. First the browser parses the URL to pull out the scheme, host, port, and path. Then it needs an IP address for that host, so it does a DNS lookup \u2014 checks its own cache, then the OS cache, then asks a resolver (usually your ISP's or something like 1.1.1.1) which walks the DNS hierarchy if it doesn't already know the answer.\n\nOnce it has an IP, the browser opens a TCP connection to that address on port 443 (or 80 for plain HTTP). That's the three-way handshake. If it's HTTPS \u2014 which is almost everything now \u2014 a TLS handshake happens on top of that TCP connection to negotiate encryption and verify the server's certificate.\n\nWith a secure channel established, the browser sends an HTTP request: a method like GET, the path, headers (cookies, user-agent, accept-encoding, etc.), and a body if there is one. The server processes that, maybe hits a database, renders something, and sends back a response \u2014 a status code, headers, and a body, usually HTML.\n\nThe browser then parses that HTML, discovers it needs more resources (CSS, JS, images), and fires off more requests for those, often reusing the same TCP connection since HTTP/1.1 and later support keep-alive. Then it builds the DOM, runs layout, paints pixels, executes scripts. That's the whole pipeline, DNS to pixels. Want me to go deeper on any one stage?",
+      "measured": {
+        "control": {
+          "words": 229,
+          "findings": 15,
+          "per_100w": 6.55
+        },
+        "pste": {
+          "words": 177,
+          "findings": 1,
+          "per_100w": 0.56
+        }
+      }
+    },
+    {
+      "question": "you mentioned the client opens a connection before the request goes out \u2014 what's actually happening in that handshake, and why does it need a round trip before any data moves?",
+      "answer": "TCP needs the handshake to agree on starting sequence numbers before either side sends data. Three packets move, in this order.\n\n1. The client sends a SYN packet. This packet carries the sequence number the client will count from.\n2. The server sends a SYN-ACK packet. This packet carries an acknowledgment of the client's sequence number, and the server's own starting sequence number.\n3. The client sends an ACK packet. This packet acknowledges the server's sequence number.\n\nThe round trip exists because step 2 depends on step 1, and step 3 depends on step 2. Neither side can skip a step, so the delay is the network's round-trip time, once, before any request byte moves.\n\nThis is why a far server feels slower even for a small request. A user near London talking to a server in Sydney pays about 300 milliseconds for this handshake alone, before TLS adds its own round trip on top.\n\nTCP needs this agreement so it can later detect a lost or a duplicate packet by its sequence number. Without it, neither side could tell a retransmission from a new packet.",
+      "control": "That's the TCP three-way handshake, and it exists because TCP is connection-oriented \u2014 both sides need to agree they're both there and synchronize sequence numbers before either one trusts the connection enough to send real data.\n\nStep one: the client sends a SYN packet to the server with an initial sequence number it picked (call it X). This is basically \"I want to talk, here's where my byte counting starts.\"\n\nStep two: the server responds with SYN-ACK \u2014 it acknowledges the client's sequence number (X+1) and sends its own initial sequence number (Y). So now the server has said \"got it, and here's where MY counting starts.\"\n\nStep three: the client sends ACK, acknowledging Y+1. Now both sides have confirmed they can send and receive, and both know the other's starting sequence number, which matters for detecting lost or out-of-order packets later.\n\nWhy the round trip is unavoidable: the client can't just start blasting data because it has no idea if the server is even listening, reachable, or what its sequence number baseline is. If it sent data blind, the server wouldn't know how to ACK it correctly, and you'd have no reliable way to detect loss. The handshake is the minimum exchange needed to establish mutual state. That round trip is also exactly why TCP has latency overhead on connection setup \u2014 and why TLS stacking another handshake on top used to really hurt before TLS 1.3 cut it down. That's actually a good segue into why reconnecting to the same server so soon still costs you something, if you want to go there next.",
+      "measured": {
+        "control": {
+          "words": 262,
+          "findings": 17,
+          "per_100w": 6.49
+        },
+        "pste": {
+          "words": 178,
+          "findings": 2,
+          "per_100w": 1.12
+        }
+      }
+    },
+    {
+      "question": "wait, why does that handshake need to happen again if I already talked to the same server five minutes ago? shouldn't it remember me?",
+      "answer": "It depends on what closed. A TCP connection and a TLS session are separate things, and either one can end on its own.\n\nMost browsers close an idle TCP connection after some seconds, to free the socket. After that, a new request needs a new TCP handshake, no matter how recently you connected.\n\nTLS is more forgiving. A server can give the client a session ticket during the first handshake. The client stores this ticket and presents it on the next connection, so the client and the server skip the full TLS handshake and agree on encryption keys in one round trip instead of two. This is session resumption.\n\nSo the \"memory\" you expect exists, but it covers TLS, not TCP. A closed TCP connection always needs a new TCP handshake. A resumed TLS session skips most of the TLS cost on top of that new TCP connection. Five minutes is usually too long for either to survive. Most connection pools close idle sockets within seconds to a few minutes. Most session tickets expire on a similar schedule. So in practice you likely pay for both handshakes again.\n\nI did not check the timeout values for your specific browser or server. I cannot promise the five-minute case survives anywhere.",
+      "control": "It depends on whether the underlying TCP connection is still open. HTTP/1.1 and later support persistent connections (keep-alive), so if your browser is still holding that same TCP socket open, it can just send another HTTP request down it without any new handshake \u2014 no new SYN/SYN-ACK/ACK, no new TLS negotiation. That's the ideal case and it's why browsers try hard to reuse connections.\n\nBut connections don't stay open forever. Servers usually set an idle timeout \u2014 if nothing's sent for N seconds (often 60-120s, sometimes less), the server closes the socket to free up resources. Five minutes of silence is very likely past that timeout, so the connection is gone even though you \"talked to the server\" recently in human terms. There's no session memory at the TCP layer across connections \u2014 TCP doesn't know or care that you're the same person who connected before; it's just bytes on a socket, and once that socket closes, the state is gone.\n\nWhat can survive across connections is higher up the stack: cookies, auth tokens, and for TLS specifically, session resumption (session tickets or session IDs) which let you skip the expensive part of the TLS handshake \u2014 the certificate exchange and key negotiation \u2014 even on a brand new TCP connection, because the server recognizes the resumption token and restores the old session keys. So the app layer can \"remember you,\" but the transport layer always has to re-establish itself from scratch once the old connection is closed.",
+      "measured": {
+        "control": {
+          "words": 245,
+          "findings": 18,
+          "per_100w": 7.35
+        },
+        "pste": {
+          "words": 209,
+          "findings": 3,
+          "per_100w": 1.44
+        }
+      }
+    },
+    {
+      "question": "ok but what's actually inside a TLS certificate, and what stops someone from just making their own and handing it to my browser?",
+      "answer": "A TLS certificate holds the server's public key, the domain names the certificate covers, an expiry date, and the identity of the certificate authority that signed it. The signature is the part that stops forgery.\n\nA certificate authority, or CA, signs the certificate with its own private key. Your browser ships with a list of CAs it trusts. When your browser receives a certificate, it checks the signature against the CA's public key, which it already holds. Anyone can create a certificate that claims to belong to your bank. No one but a trusted CA can produce a signature your browser accepts for that domain, because the CA's private key is the only key that produces it.\n\nThis is why the system is called a chain of trust. Your browser trusts the CA. The CA vouches for the server. You never meet the CA, but your browser carries its public key in advance.\n\nAn attacker who runs their own CA can sign their own fake certificate, but your browser rejects it, because that CA is not in the trusted list. The attacker needs either a private key stolen from a trusted CA, or a bug in a trusted CA's own checks. Both happen, rarely, and each is treated as a serious incident when it does.",
+      "control": "A TLS certificate is basically an X.509 data structure binding a public key to an identity, signed by someone vouching for that binding. Inside you've got: the subject (the domain name(s) it's valid for, in the Subject Alternative Name field mostly \u2014 browsers don't even trust the old Common Name field anymore), the issuer (who signed it), the public key itself, a validity window (not-before/not-after dates), a serial number, the signature algorithm, and critically, a digital signature over all of that, produced by the issuer's private key.\n\nNow, to your actual question \u2014 absolutely nothing stops anyone from generating their own certificate. Anyone can run `openssl req -x509 ...` in two seconds and make a cert claiming to be google.com. The thing that stops your browser from trusting it is the chain of trust. Your OS and browser ship with a curated list of root CA public keys (DigiCert, Let's Encrypt, etc. \u2014 maybe 100-150 of them). A cert is only trusted if it can be traced back through a chain of signatures to one of those roots: the server's cert is signed by an intermediate CA, and that intermediate's cert is signed by a root CA, and the root is self-signed and sits in your trust store.\n\nIf you hand your browser a self-signed cert claiming to be google.com, the browser tries to verify the signature chain, finds no path to a trusted root, and throws the \"your connection is not private\" warning. The only way around that is if you (or malware) actually install your fake root into the OS/browser trust store \u2014 which is exactly what corporate MITM proxies and some malware do, and why that trust store is guarded so carefully.",
+      "measured": {
+        "control": {
+          "words": 282,
+          "findings": 18,
+          "per_100w": 6.38
+        },
+        "pste": {
+          "words": 215,
+          "findings": 8,
+          "per_100w": 3.72
+        }
+      }
+    },
+    {
+      "question": "walk me through the steps to capture and inspect the TCP handshake for a single request on my machine, start to finish",
+      "answer": "Here is a start-to-finish capture, using `tcpdump` on macOS or Linux.\n\n1. Find your active network interface. Run `ifconfig` (macOS) or `ip a` (Linux), and note the interface name, commonly `en0` or `eth0`.\n2. Start the capture before you send the request. Run `sudo tcpdump -i en0 -w handshake.pcap host example.com and port 443`. Replace `en0` and `example.com` with your interface and target.\n3. In another terminal, send one request. Run `curl -v https://example.com`.\n4. Stop the capture with Ctrl-C, after the request finishes.\n5. Open the file in Wireshark, or read it in the terminal with `tcpdump -r handshake.pcap -n`.\n6. Find the first three packets between your IP address and the server's IP address. The flags column shows `S` for the SYN, `S.` for the SYN-ACK, and `.` for the final ACK.\n\nWireshark marks these for you. Type `tcp.flags.syn==1` in the filter bar to jump straight to the first two packets of the handshake.\n\nI tested this on macOS with `tcpdump` and `curl`. I did not test the Linux path with `ip a`, though the command is standard.",
+      "control": "Easiest way is tcpdump plus a browser, filtered down to exactly one host so you're not drowning in noise.\n\n1. Pick a target and resolve it first so you know the IP: `dig +short example.com`. Say it's 93.184.216.34.\n2. Start the capture before you make the request: `sudo tcpdump -i en0 -n host 93.184.216.34 and port 443 -w handshake.pcap`. `-n` skips DNS resolution in the output so it's not slower or noisier, `-w` writes raw packets to a file so you can open it properly in Wireshark after.\n3. In another terminal or the browser, hit `https://example.com/` once. Try to do it in a fresh context (curl is cleaner than a browser tab, since browsers keep connections alive and prefetch stuff): `curl -s -o /dev/null https://example.com/`.\n4. Ctrl-C the tcpdump.\n5. Open it in Wireshark: `wireshark handshake.pcap` (or just read it on the command line with `tcpdump -r handshake.pcap -n -S`).\n6. In Wireshark, filter on `tcp.flags.syn==1` to jump straight to the handshake packets. You should see: your machine -> server, flags [S] (SYN) with a sequence number; server -> you, flags [S.] (SYN-ACK); you -> server, flags [.] (ACK). That's the three packets, zero payload, just the handshake. Wireshark's \"Follow TCP Stream\" on that conversation will show you the whole thing in order, and right after the ACK you'll see the TLS Client Hello kick off, so you get the handshake and the TLS negotiation in one clean capture.",
+      "measured": {
+        "control": {
+          "words": 186,
+          "findings": 16,
+          "per_100w": 8.6
+        },
+        "pste": {
+          "words": 154,
+          "findings": 3,
+          "per_100w": 1.95
+        }
+      }
+    },
+    {
+      "question": "what happens below TLS \u2014 how does TCP know a packet got lost and make sure it's resent in order?",
+      "answer": "TCP tracks every byte by a sequence number, and this number is what detects loss and keeps order. Three mechanisms work together.\n\nThe sender numbers every byte it sends. The receiver sends back an acknowledgment number, which states the next byte it expects. If the sender's next sequence number does not match what the receiver already acknowledged, the sender knows which bytes are missing.\n\nA timer covers each sent segment. If the sender gets no acknowledgment before the timer expires, the sender resends that segment. This is a retransmission timeout.\n\nThe receiver also buffers out-of-order packets instead of discarding them. If packet 3 arrives before packet 2, the receiver holds packet 3, waits for packet 2, then delivers both in order to the application. A receiver that gets several packets past a gap sends duplicate acknowledgments for the last byte it has in order. A sender that sees three of these resends the missing segment without waiting for the timer. This is a fast retransmit.\n\nSo loss detection runs on two paths: a slow timer as a fallback, and duplicate acknowledgments as a fast signal. Both end in the same action, a resend of the exact missing bytes, numbered so the receiver can always restore the original order.",
+      "control": "TCP's whole reliability story is built on sequence numbers and acknowledgments, which we already touched on during the handshake setup.\n\nEvery byte TCP sends is numbered. Each segment carries a sequence number (where this chunk starts in the stream) and the receiver sends back an ACK carrying the next sequence number it expects. So if you send bytes 1-1000 and the receiver got them cleanly, it ACKs with \"1001\" \u2014 meaning \"I have everything up to there, send me more from there.\"\n\nLoss detection happens two main ways. First, retransmission timeout (RTO): the sender tracks round-trip time and if it doesn't get an ACK within that estimated window, it assumes the segment was lost and resends it. Second, and faster in practice, duplicate ACKs: if the receiver gets segments out of order \u2014 say it got 1-1000 then 2001-3000, skipping 1001-2000 \u2014 it keeps re-ACKing \"1001\" (the last in-order byte it has) every time a new out-of-order segment arrives. Three duplicate ACKs in a row triggers fast retransmit, so the sender resends the missing segment without waiting for the full timeout.\n\nOrdering is solved by the receiver's side: it buffers anything that arrives out of order and only hands data up to the application once the gaps are filled in, reassembled strictly by sequence number. The application never sees out-of-order or missing bytes \u2014 TCP hides all of that plumbing and presents a clean ordered stream, which is the whole point of the abstraction and why you don't have to think about any of it at the HTTP layer.",
+      "measured": {
+        "control": {
+          "words": 249,
+          "findings": 16,
+          "per_100w": 6.43
+        },
+        "pste": {
+          "words": 204,
+          "findings": 3,
+          "per_100w": 1.47
+        }
+      }
+    },
+    {
+      "question": "if i set the MTU too low on an interface, or mess with it on a router in the path, what actually breaks, and how would I even notice?",
+      "answer": "A low MTU forces more fragmentation, and a badly configured path drops packets outright instead of fragmenting them. Two different failures follow from this.\n\nIf a device's MTU is simply small, packets get split into more fragments, each with its own header. This wastes bandwidth and adds overhead, but small traffic, like a DNS query, still gets through.\n\nThe sharper failure appears in a path between two large-MTU devices when a router in the middle has a lower MTU. IPv4 can fragment, but many servers set the \"do not fragment\" bit, to avoid the cost. When a packet hits a router with a smaller MTU and carries that bit, the router must drop the packet and send back an ICMP \"fragmentation needed\" message. If a firewall on the path blocks that ICMP message, the sender never finds out, and the connection stalls.\n\nYou would notice this as a connection that completes its TCP handshake, since handshake packets are small, but then hangs on the first real data transfer. Small requests work. Large pages, file downloads, or VPN traffic freeze or time out. This pattern, small packets fine and large packets stuck, is the classic symptom. It points straight at an MTU mismatch combined with blocked ICMP.",
+      "control": "MTU is the max size of a single frame/packet an interface will send. If it's too low somewhere in the path, big packets either get fragmented or dropped, and the failure mode is annoyingly inconsistent, which is exactly why MTU issues are a classic \"works for some stuff, not others\" bug.\n\nHere's the mechanism: IPv4 allows fragmentation, so if a router's outgoing interface has a smaller MTU than the packet, it can split it into smaller fragments and send those \u2014 more overhead, slightly worse performance, but it usually still works. The real breakage comes from the Don't Fragment (DF) bit, which TLS/TCP traffic sets by default as part of Path MTU Discovery: the idea is a router that can't forward a too-big packet with DF set should send back an ICMP \"Fragmentation Needed\" message so the sender learns to shrink its packets. If that ICMP message gets blocked somewhere (very common \u2014 lots of firewalls drop ICMP thinking it's just reconnaissance/security noise), the sender never finds out, keeps sending oversized packets, and they silently vanish into a black hole. No error, no RST, just nothing.\n\nWhat you'd actually observe: small requests work fine \u2014 DNS lookups, short HTTP responses, SSH login \u2014 because those packets are small enough to fit under any MTU. But anything that needs a big payload in one packet hangs or times out: large file downloads, bigger TLS handshakes (a cert chain can push the Client Hello or Server Hello over a low MTU), SFTP transfers, VPN traffic. The telltale pattern is \"ping works, small stuff works, but downloads/big transfers hang forever.\" To debug it, `ping -M do -s <size>` (Linux) or `ping -D -s <size>` sweeps with the DF bit set lets you binary-search the actual path MTU, and a packet capture will show you retransmissions of the same large segment going nowhere.",
+      "measured": {
+        "control": {
+          "words": 302,
+          "findings": 18,
+          "per_100w": 5.96
+        },
+        "pste": {
+          "words": 206,
+          "findings": 9,
+          "per_100w": 4.37
+        }
+      }
+    },
+    {
+      "question": "last one \u2014 at the link layer, what's the actual difference between a switch and a router, and how do they know where to send a frame vs a packet?",
+      "answer": "A switch reads the layer-2 frame and forwards by MAC address. A router reads the layer-3 packet and forwards by IP address. This difference also sets the boundary of each device's reach.\n\nA switch keeps a table that maps MAC addresses to its own physical ports. It builds this table by watching the source address of every frame it sees. When a frame arrives for a MAC address already in the table, the switch sends the frame out only that port. When the address is not in the table, the switch floods the frame out every port except the one it arrived on, and it learns the real port from the reply. A switch has no idea what an IP address is, so it cannot forward anything outside its own local network.\n\nA router reads the destination IP address inside the packet, and checks it against a routing table. The routing table matches ranges of addresses to a next-hop router or a local interface. The router then rewrites the frame around the packet, with a new source and destination MAC address for the next link, and sends it out the matching interface. This lookup, one hop at a time, is what lets a packet cross from one network to another, all the way to a server on the other side of the world.\n\nSo a switch connects devices within one network, and a router connects separate networks together.",
+      "control": "Switches operate at layer 2, routers at layer 3, and that distinction drives everything else.\n\nA switch deals in frames and forwards based on MAC addresses. It builds a MAC address table (sometimes called a CAM table) by watching which MAC address shows up on which physical port as traffic flows through \u2014 dead simple learning, no configuration needed. When a frame comes in destined for MAC address X, it checks the table, and if it knows which port X lives on, it forwards the frame out just that port. If it doesn't know yet, it floods the frame out every port except the one it came in on, and whoever responds teaches the switch where that MAC lives. Switches don't look at IP addresses at all and don't make routing decisions \u2014 they just connect devices within the same broadcast domain / local network.\n\nA router deals in packets and forwards based on IP addresses, using a routing table instead of a MAC table. When a packet arrives, the router looks at the destination IP, checks its routing table for the best matching route (longest prefix match), and forwards the packet out the appropriate interface toward the next hop \u2014 possibly onto a completely different network. Crucially, a router also rewrites the layer-2 framing at each hop: it strips the incoming frame's MAC header and wraps the packet in a new frame addressed to the next hop's MAC address, while the IP addresses inside stay the same end to end. That's really the core insight \u2014 IP addresses are end-to-end and survive the whole journey, MAC addresses are only valid for one hop and get swapped at every router along the way. Switches extend a single hop's reach; routers are what stitch separate hops into an internet.",
+      "measured": {
+        "control": {
+          "words": 291,
+          "findings": 18,
+          "per_100w": 6.19
+        },
+        "pste": {
+          "words": 238,
+          "findings": 4,
+          "per_100w": 1.68
+        }
+      }
+    }
+  ],
+  "summary": {
+    "control": {
+      "words": 2046,
+      "findings": 136,
+      "per_100w": 6.65
+    },
+    "pste": {
+      "words": 1581,
+      "findings": 33,
+      "per_100w": 2.09
+    }
+  }
+}

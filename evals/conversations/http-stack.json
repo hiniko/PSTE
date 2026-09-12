@@ -1,0 +1,17 @@
+{
+  "id": "http-stack",
+  "title": "A deep dive down the network stack",
+  "topic": "HTTP and the layers below it",
+  "note": "A developer's questions in one session, from the top of the HTTP stack down to the link layer. The set is pinned so that a later run changes only the prose, never the questions. This follows the rule the corpus manifest states: hold the content still, and the form is the only thing left to measure.",
+  "provenance": "Written by an agent that never read the standard, under a rule that forbade it from naming writing, style or clarity. A question that asks for plain prose would prompt the register this eval measures.",
+  "questions": [
+    "how does http actually work when i type a url into the browser and hit enter",
+    "you mentioned the client opens a connection before the request goes out \u2014 what's actually happening in that handshake, and why does it need a round trip before any data moves?",
+    "wait, why does that handshake need to happen again if I already talked to the same server five minutes ago? shouldn't it remember me?",
+    "ok but what's actually inside a TLS certificate, and what stops someone from just making their own and handing it to my browser?",
+    "walk me through the steps to capture and inspect the TCP handshake for a single request on my machine, start to finish",
+    "what happens below TLS \u2014 how does TCP know a packet got lost and make sure it's resent in order?",
+    "if i set the MTU too low on an interface, or mess with it on a router in the path, what actually breaks, and how would I even notice?",
+    "last one \u2014 at the link layer, what's the actual difference between a switch and a router, and how do they know where to send a frame vs a packet?"
+  ]
+}

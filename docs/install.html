@@ -1,0 +1,73 @@
+<meta charset="utf-8">
+<title>Install</title>
+<meta name="description" content="How to get PSTE: the plugin marketplace, the hand-install path, the on/off switch, and what PSTE costs in context.">
+<link rel="stylesheet" href="style.css">
+
+<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="install.html">Install</a> <a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Test runs</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+
+<div class="wrap">
+
+<p class="pill">This page follows PSTE.</p>
+
+<h1>Install</h1>
+
+<p class="lede">How to get PSTE, what it turns on, and what it costs in context.</p>
+
+<h2>Install through the plugin marketplace</h2>
+
+<p>PSTE is a plugin for Claude Code. The repository is also a plugin marketplace, so two
+commands install it. Run them inside Claude Code:</p>
+
+<pre><code>/plugin marketplace add hiniko/PSTE
+/plugin install pste@hiniko</code></pre>
+
+<p>The first command adds the marketplace. The second installs the plugin from it. To get a
+later version, run <code>/plugin marketplace update</code>.</p>
+
+<h2>What the plugin carries</h2>
+
+<p>The plugin carries the skill, the <code>/pste</code> command, and two hooks. The hooks
+keep the rules active across a long session.</p>
+
+<h2>Install the skill by hand</h2>
+
+<p>You can also install the skill by hand. Clone <a href="https://github.com/hiniko/PSTE">hiniko/PSTE</a>.
+Then copy <code>skill/</code> into your Claude Code skills directory as <code>pste/</code>.
+The path ends <code>pste/SKILL.md</code>.</p>
+
+<h2>Turn it on</h2>
+
+<p>Once the skill is active, run <code>/pste on</code> or <code>/pste off</code>.
+There is one standard, and every rule in it applies.</p> <!-- pste-lint: ignore -->
+
+<h2>What PSTE costs in context</h2>
+
+<p>PSTE runs as a Claude Code plugin. Loading its rules costs context space, not money. This repository has no tokenizer, and will not add one, so the table below reports characters. A character count is exact. A token count would be an estimate.</p>
+
+<table class="numbers"><thead><tr><th>What loads, and when</th><th class="n">Characters</th></tr></thead><tbody><tr><td>The skill's description, at every session start</td><td class="n">428</td></tr><tr><td><code>skill/SKILL.md</code>, when the skill fires</td><td class="n">16,617</td></tr><tr><td>The per-turn reminder, added by the <code>UserPromptSubmit</code> hook</td><td class="n">574</td></tr><tr><td><code>skill/SKILL.md</code> again, written by the <code>SessionStart</code> hook</td><td class="n">16,617</td></tr></tbody></table> <!-- pste-lint: ignore -->
+
+<p>Claude Code loads a skill's description at session start, and loads the skill's body only when the skill fires. So a session that never uses PSTE pays 428 characters, not 16,617.</p>
+
+<p>The plugin's <code>SessionStart</code> hook writes the whole of <code>skill/SKILL.md</code> into context anyway, on purpose. The hook's own comment gives the reason: a short summary decays over a long session, and compaction can remove it, but the full rule set survives both. A session that also triggers the skill can hold the rule set twice.</p>
+
+<p>Every turn after that carries the 574-character reminder from the <code>UserPromptSubmit</code> hook. This keeps the rules in view without repeating the full text on every turn.</p>
+
+<p>This cost exists because the skill also governs a whole conversation, an experimental use that <a href="validation.html#conversation">Validation measures</a>.</p>
+
+<div class="honest">
+
+<h3>What is known, and what is not</h3>
+
+<p>No reading trial with people happened yet. Until one does, the honest claim is that this text passes automatic checks. <a href="https://github.com/hiniko/PSTE/blob/main/evals/FUTURE-WORK.md">Read the trial design</a>.</p>
+
+</div>
+
+</div>
+
+<footer class="site">
+
+<p>PSTE is MIT licensed. The corpus keeps the license of each source document. <a href="https://github.com/hiniko/PSTE">hiniko/PSTE on GitHub</a>.</p>
+
+</footer>
+
+<script src="theme.js"></script>

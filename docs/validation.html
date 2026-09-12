@@ -1,8 +1,9 @@
+<meta charset="utf-8">
 <title>Validation</title>
 <meta name="description" content="How this project checks PSTE: the corpus, the three arms, the judge, the fact-loss gate, and what the numbers do and do not show.">
 <link rel="stylesheet" href="style.css">
 
-<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Eval runs</a> <a href="index.html#get-pste">Get PSTE</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="install.html">Install</a> <a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Test runs</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
 
 <div class="wrap">
 
@@ -10,13 +11,13 @@
 
 <h1>Validation</h1>
 
-<p class="lede">This project uses the word "checker" for two different tools. This page keeps them apart, and shows how PSTE gets tested.</p>
+<p class="lede">This page shows how PSTE gets tested: a rule check that counts what a pattern can find, and a judge that reads what a pattern cannot.</p>
 
-<h2>Two different checkers</h2>
+<h2>The rule check, and the judge</h2>
 
-<p>A checker at <code>evals/pste_lint.py</code> checks one document. A writer runs it against a single file, and it reports every finding with its weight and a weighted total. It is a tool, like a linter.</p>
+<p>The rule check runs at <code>evals/pste_lint.py</code>, against one document. A writer runs it against a single file, and it reports every violation with its weight and a weighted total.</p>
 
-<p>The eval suite is a different thing. It tests whether PSTE itself works: whether the skill beats a plain request, whether a fix pass helps, and whether any of that costs the reader a fact. The suite uses a corpus, three arms, a judge, and a fact-loss gate.</p>
+<p>The test suite is a different thing. It tests whether PSTE itself works: whether the skill beats a plain request, whether a fix pass helps, and whether any of that costs the reader a fact. The suite uses a corpus, three arms, a judge, and a fact-loss gate.</p>
 
 <h2>The corpus, and where it came from</h2>
 
@@ -28,11 +29,11 @@
 
 <h2>How a run works</h2>
 
-<p>Each run tries three arms against the same corpus document. A plain request asks a model to simplify the text, with no other instruction. The skill arm adds the PSTE skill to the same request. A third arm takes the skill's draft and runs one fix pass against the checker's findings.</p>
+<p>Each run tries three arms against the same corpus document. A plain request asks a model to simplify the text, with no other instruction. The skill arm adds the PSTE skill to the same request. A third arm takes the skill's draft and runs one fix pass against the rule check's violations.</p>
 
 <p>The comparison that matters is the skill against the plain request. Both get the same ask. The skill is the only difference, so a gap between them is the skill's effect.</p>
 
-<p>A fix pass can remove a fact to satisfy a rule. A fact-loss gate catches this: when a fix drops a fact the draft still had, the run keeps the draft and discards the fix. A judge model then reads every draft and confirms or rejects the findings the mechanical checker could not decide alone.</p>
+<p>A fix pass can remove a fact to satisfy a rule. A fact-loss gate catches this: when a fix drops a fact the draft still had, the run keeps the draft and discards the fix. A judge model then reads every draft and confirms or rejects the violations the rule check could not decide alone.</p>
 
 <h2>How the project verifies itself</h2>
 
@@ -42,13 +43,13 @@
 
 <h2>What the numbers say, and what they do not</h2>
 
-<p>A checker can count rule violations. It cannot measure whether a person reads the text more easily. Nobody ran a reading trial with people yet.</p>
+<p>The rule check can count rule violations. It cannot measure whether a person reads the text more easily. Nobody ran a reading trial with people yet.</p>
 
-<p>The numbers below report one thing: the share of sentences in the corpus that carry no finding from a checker. That checker implements 29 of PSTE-1's 70 rules. The count is not a quality score, and PSTE-1 itself says so.</p>
+<p>The numbers below report one thing: the share of sentences in the corpus that carry no violation from the rule check. The rule check implements 29 of PSTE-1's 70 rules. The count is not a quality score, and PSTE-1 itself says so.</p>
 
 <table class="numbers"><thead><tr><th>Arm</th><th class="n">Sentences clean per hundred</th></tr></thead><tbody><tr><td>Source documents, as published</td><td class="n">47.5</td></tr><tr><td>A plain request to simplify</td><td class="n">73.6</td></tr><tr><td>The skill</td><td class="n">83.9</td></tr><tr><td>The skill and a fix pass</td><td class="n">96.0</td></tr></tbody></table> <!-- pste-lint: ignore -->
 
-<p>The source documents, as published, leave 47.5 sentences clean in every hundred. A plain request to simplify them reaches 73.6. The skill reaches 83.9. The skill, plus a fix pass against the checker's findings, reaches 96.0.</p>
+<p>The source documents, as published, leave 47.5 sentences clean in every hundred. A plain request to simplify them reaches 73.6. The skill reaches 83.9. The skill, plus a fix pass against the rule check's violations, reaches 96.0.</p>
 
 <div class="honest">
 
@@ -57,6 +58,52 @@
 <p>A conformance result is not a measure of quality. No reading trial with people ran yet. Until one runs, the honest claim is that this text passes automatic checks. It is not that this text is easier to read. <a href="https://github.com/hiniko/PSTE/blob/main/evals/FUTURE-WORK.md">Read the trial design</a>.</p>
 
 </div>
+
+<h2 id="conversation">The agent transformer is still under test</h2>
+
+<p>PSTE has a second use: it can also govern the text an agent writes back to you, turn after turn, inside a conversation. This use is experimental. The corpus above tests one pass over one document. No run until now tested a long conversation.</p>
+
+<h3>What was measured</h3>
+
+<p>One session asked fifty questions in order. The questions moved from HTTP down through TLS, TCP, IP, the link layer, the operating system, and into debugging. Two arms answered the same fifty questions. One arm read the rules first. The other arm never saw them.</p>
+
+<p>Neither arm revised a response afterward. Neither arm ran any check over its own text.</p>
+
+<h3>The result</h3>
+
+<table class="numbers"><thead><tr><th></th><th class="n">With PSTE</th><th class="n">Without</th></tr></thead><tbody><tr><td>Words</td><td class="n">8,586</td><td class="n">12,992</td></tr><tr><td>Violations</td><td class="n">348</td><td class="n">1,115</td></tr><tr><td>Violations per 100 words</td><td class="n">4.05</td><td class="n">8.58</td></tr><tr><td>First third of the session</td><td class="n">2.97</td><td class="n">9.09</td></tr><tr><td>Middle third</td><td class="n">4.39</td><td class="n">8.26</td></tr><tr><td>Last third</td><td class="n">4.42</td><td class="n">8.45</td></tr></tbody></table> <!-- pste-lint: ignore -->
+
+<h3>What the shape means</h3>
+
+<p>The PSTE arm rises across the first third of the session, then holds. The middle third and the last third differ by 0.03, a change worth calling nothing. So the PSTE arm's rate change across the session is a step, not a slope. The arm without PSTE stays flat across all three thirds, so the questions did not increase in difficulty as the session went on.</p>
+
+<h3>The honest comparison</h3>
+
+<p>A single pass over one document reaches a rate far below 4.4 violations per 100 words. This conversational use is measurably worse than the document case. The project does not yet know why the step happens, or how to remove it.</p>
+
+<h3>What is known about the cause</h3>
+
+<p>Nothing here is proven. Two ideas are worth naming as open questions, not as violations.</p>
+
+<p>The rule set may be too large for a model to hold in attention across a long session. That is the first open question. The per-turn reminder may be too short to anchor behavior on its own. That is the second. Neither idea has support yet beyond the shape above.</p>
+
+<h3>What other tools do</h3>
+
+<p>PSTE is not the only project that meets this pattern. The <code>caveman</code> plugin for Claude Code carries a comment in its own activation hook. The comment reads, verbatim: "The old 2-sentence summary was too weak — models drifted back to verbose mid-conversation, especially after context compression pruned it away. Full rules with examples anchor behavior much more reliably." <!-- pste-lint: ignore --></p>
+
+<p>The caveman plugin's whole rule set is 3,653 characters. PSTE's rule set is 16,617 characters. A smaller rule set costs a tool less to re-inject across a session.</p>
+
+<p>This comment is evidence that the pattern is not unique to this project. It is also evidence that rule-set size affects how cheaply a tool can fight the drift.</p>
+
+<h3>What would settle it</h3>
+
+<p>Open work remains, with no date attached to any of it. One path is progressive disclosure: load more rules only when a session needs them, which first needs a way to detect that need. A second path is re-injection: write part of the rule set back into context every few turns, not only at the start.</p>
+
+<p>A third path tests a smaller rule set and a shorter per-turn reminder against the current pair. A fourth path runs these same fifty questions again, to learn whether the step reproduces.</p>
+
+<h3>The limit that still holds</h3>
+
+<p>None of this measures whether a reader understands the text better. <a href="https://github.com/hiniko/PSTE/blob/main/evals/FUTURE-WORK.md">evals/FUTURE-WORK.md</a> holds that trial design.</p>
 
 <h2>Read more</h2>
 

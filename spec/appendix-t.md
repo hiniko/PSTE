@@ -3,14 +3,14 @@
 This appendix is informative. It binds a tool or an agent that checks or produces PSTE
 text, not the writer of that text. None of its identifiers is a rule of the
 specification: a document's conformance to PSTE-1 never depends on whether a tool meets
-these obligations. A checker `MUST` still meet them to call itself a PSTE-1 checker.
+these obligations. A rule check `MUST` still meet them to call itself a PSTE-1 rule check.
 
 ## T.1 What a tool reports
 
-**PSTE-T1**: The tool `MUST` name each finding by its rule identifier.
+**PSTE-T1**: The tool `MUST` name each violation by its rule identifier.
 
 A report that omits the identifier cannot be compared against another report. A writer
-who reads a finding with no identifier cannot look up the rule it cites.
+who reads a violation with no identifier cannot look up the rule it cites.
 
 ## T.2 How a tool counts words
 
@@ -19,10 +19,10 @@ who reads a finding with no identifier cannot look up the rule it cites.
 A word count that disagrees with PSTE-N7 gives a writer a limit that does not match the
 limit this specification states, at PSTE-N1 and PSTE-N2.
 
-## T.3 What a checker counts mechanically
+## T.3 What a rule check counts mechanically
 
 A writer cannot count and compose at the same time. The rules below are the ones a
-checker measures exactly, so a writer never needs to count them by hand.
+rule check measures exactly, so a writer never needs to count them by hand.
 
 | What the tool counts | Rule |
 |---|---|
@@ -34,9 +34,9 @@ checker measures exactly, so a writer never needs to count them by hand.
 | Filler, stacked hedging, and frame phrases | PSTE-L1, PSTE-L2, PSTE-L5 |
 | Not-approved words | PSTE-V1, PSTE-V3, PSTE-V8, PSTE-V9 |
 
-A clean report from a checker is necessary. It is not enough on its own. The table
-above is part of the specification a checker covers today. A rule this table does not
-list still binds the writer. It waits on a checker able to measure it.
+A clean report from a rule check is necessary. It is not enough on its own. The table
+above is part of the specification a rule check covers today. A rule this table does
+not list still binds the writer. It waits on a rule check able to measure it.
 
 ## T.4 The weight CSV and the self-test that keeps it in step
 
@@ -49,3 +49,10 @@ and regenerates the file.
 `evals/pste_lint.py --self-test` reads both the specification and the CSV and asserts
 they agree. A mismatch fails the self-test, the same way an unknown rule identifier
 fails it elsewhere in the tooling.
+
+## T.5 The word appendices
+
+Appendix A and Appendix C are generated from `spec/wordlist.yaml` by
+`lib/build_appendix.py`. A person edits the YAML file, then runs that script. A rule
+check reads the same YAML, so the specification and the tool cannot disagree about
+which words are approved.

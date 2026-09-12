@@ -178,7 +178,7 @@ cannot obey a rule.
 
 ### 4.1 Why a weight exists
 
-A count of findings alone treats a dropped negation and a missing hyphen as one fault
+A count of violations alone treats a dropped negation and a missing hyphen as one fault
 each. That measures nothing useful.
 
 A writer who removes a condition sends the next reader down the wrong path. A writer
@@ -217,8 +217,8 @@ rule that this specification weights.
 
 ### 4.4 How a tool uses the weight
 
-A tool `MAY` compute a weighted sum of findings, by adding each finding's rule weight
-instead of adding one per finding. A maintainer uses the sum to compare documents, or
+A tool `MAY` compute a weighted sum of violations, by adding each violation's rule weight
+instead of adding one per violation. A maintainer uses the sum to compare documents, or
 to compare a change.
 
 ---
@@ -585,7 +585,7 @@ Either way, the rule's own example states the same fact.
 **PSTE-G10**: A writer `MUST NOT` use gendered pronouns for a person whose pronouns
 the writer does not know. Use "they".
 
-*Weight: 0.1.* Checker runs this at `SHOULD`. It flags a common and often-correct
+*Weight: 0.1.* A rule check runs this at `SHOULD`. It flags a common and often-correct
 pattern for a human to check, and does not fail a document on a hit alone.
 
 **PSTE-G11**: A writer `MUST NOT` write more than two adjectives before a noun. Write
@@ -946,7 +946,5 @@ Workcards", Proceedings of the Human Factors and Ergonomics Society Annual Meeti
 - **[Appendix D](conformance/README.md)** — Conformance test cases.
 - **[Appendix T](appendix-t.md)** — Obligations on a tool (informative).
 
-Appendices A and C are generated from `wordlist.yaml` by
-`lib/build_appendix.py`. Edit the YAML files, then run that script. The checker reads
-the same YAML, so this specification and the checker cannot disagree about which words
-are approved.
+Appendices A and C are generated from `spec/wordlist.yaml`. Appendix T states how a
+person regenerates them.
