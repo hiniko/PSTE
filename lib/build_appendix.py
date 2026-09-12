@@ -8,12 +8,13 @@
 The appendices are generated, so the standard and the checker can never disagree
 about which words are approved.
 
-The same `--check` run also regenerates `spec/rule_weights.csv` from the weight
-table in PSTE-1.md §15.5. That table, not the CSV, is where a person edits a
-weight: spec/PSTE-1.md is normative text, and the CSV exists only so a program can
-read the weights without parsing markdown. Generating the CSV from the table is
-what keeps the two from disagreeing, the same reason the word appendices are
-generated from the YAML files rather than hand-written.
+The same `--check` run also regenerates `spec/rule_weights.csv` from the inline
+`*Weight: N.N.* reason...` annotation that follows each rule in PSTE-1.md. That
+annotation, not the CSV, is where a person edits a weight: spec/PSTE-1.md is
+normative text, and the CSV exists only so a program can read the weights without
+parsing markdown. Generating the CSV from the specification is what keeps the two
+from disagreeing, the same reason the word appendices are generated from the YAML
+files rather than hand-written.
 """
 
 import argparse
@@ -148,33 +149,49 @@ def appendix_c(entries):
     return "\n".join(out)
 
 
-WEIGHT_ROW_RE = re.compile(
-    r"^\|\s*(PSTE-[A-Z0-9.]+)\s*\|\s*([0-9.]+|N/A)\s*\|\s*(.*?)\s*\|$"
-)
+RULE_HEADING_RE = re.compile(r"^\*\*(PSTE-[A-Z0-9.]+)\*\*:")
+WEIGHT_LINE_RE = re.compile(r"^\*Weight:\s*([0-9.]+|N/A)\.\*\s*(.*)$")
 
 
 def parse_weight_table(path):
-    """Read the §15.5 weight table straight out of PSTE-1.md.
+    """Read each rule's inline `*Weight: N.N.* reason...` annotation from PSTE-1.md.
 
-    The table is the normative source. This walks the raw markdown rather than a
-    general table parser, the same tolerant-reader approach `parse_entries` above
-    takes for the YAML files, so this script never needs a markdown library.
+    Each rule paragraph (`**PSTE-XX**: ...`) is followed, after a blank line, by a
+    weight annotation. The reason wraps across lines like ordinary markdown prose,
+    so this joins lines until the next blank line. This walks the raw markdown
+    rather than a general parser, the same tolerant-reader approach `parse_entries`
+    above takes for the YAML files, so this script never needs a markdown library.
     """
     rows = []
-    in_table = False
+    current_rule = None
+    weight = None
+    reason_lines = None
+
+    def flush():
+        if current_rule and weight is not None:
+            rows.append((current_rule, weight, " ".join(reason_lines).strip()))
+
     with open(path, encoding="utf-8") as fh:
-        for line in fh:
-            line = line.rstrip("\n")
-            if line.strip() == "### 15.5 The weight table":
-                in_table = True
+        for raw in fh:
+            line = raw.rstrip("\n")
+            heading = RULE_HEADING_RE.match(line)
+            if heading:
+                flush()
+                current_rule, weight, reason_lines = heading.group(1), None, None
                 continue
-            if in_table and line.startswith("### "):
-                break
-            if not in_table:
+            if current_rule and weight is None:
+                m = WEIGHT_LINE_RE.match(line.strip())
+                if m:
+                    weight, reason_lines = m.group(1), [m.group(2)]
                 continue
-            m = WEIGHT_ROW_RE.match(line.strip())
-            if m:
-                rows.append(m.groups())
+            if reason_lines is not None:
+                stripped = line.strip()
+                if not stripped:
+                    flush()
+                    current_rule = None
+                else:
+                    reason_lines.append(stripped)
+    flush()
     return rows
 
 

@@ -194,7 +194,7 @@ or scope qualifier that the rewrite dropped or changed.
 """
 
 
-def split_mechanical(text, level=2):
+def split_mechanical(text):
     """The mechanical checker's findings, split into the two things a caller does
     with them: a COUNTABLE finding fails a document on its own and the judge is
     only told about it so it does not repeat it; an ARBITRATED finding (see
@@ -203,7 +203,7 @@ def split_mechanical(text, level=2):
     can never be complete.
     """
     vocab = pste_lint.load_vocab()
-    result = pste_lint.check_text(text, level=level, vocab=vocab)
+    result = pste_lint.check_text(text, vocab=vocab)
     countable = [f for f in result["findings"] if not f["arbitrated"]]
     arbitrated = [f for f in result["findings"] if f["arbitrated"]]
     return countable, arbitrated
@@ -222,17 +222,17 @@ def _format_findings(findings, empty):
     return "\n".join(lines)
 
 
-def mechanical_findings(text, level=2):
+def mechanical_findings(text):
     """What the regular expressions already found, countable ones only. The judge
     is told to skip these — kept as a separate function because build_prompt's own
     self-test checks it, and other callers outside this module import it by name.
     """
-    countable, _arbitrated = split_mechanical(text, level)
+    countable, _arbitrated = split_mechanical(text)
     return _format_findings(countable, "(none)")
 
 
-def build_prompt(text, source=None, level=2):
-    countable, arbitrated = split_mechanical(text, level)
+def build_prompt(text, source=None):
+    countable, arbitrated = split_mechanical(text)
     prompt = PROMPT.format(
         rules=SEMANTIC_RULES,
         mechanical=_format_findings(countable, "(none)"),
@@ -354,7 +354,7 @@ def auth_failure(detail):
     return "not logged in" in low or "/login" in low
 
 
-def judge(text, source=None, level=2, credential_var=None, timeout=900, model=MODEL_JUDGE):
+def judge(text, source=None, credential_var=None, timeout=900, model=MODEL_JUDGE):
     """Ask the judge once, in the clean container.
 
     `model` defaults to MODEL_JUDGE but is never left to a CLI default (see
@@ -365,7 +365,7 @@ def judge(text, source=None, level=2, credential_var=None, timeout=900, model=MO
     Returns (findings, considered, error). `considered` is the judge's list of
     rules it weighed and rejected — see `parse`.
     """
-    prompt = build_prompt(text, source, level)
+    prompt = build_prompt(text, source)
     cmd = corpus_generate.container_command(prompt, credential_var, model=model)
     try:
         out = subprocess.run(
@@ -404,7 +404,7 @@ def judge(text, source=None, level=2, credential_var=None, timeout=900, model=MO
 GATE_DEFAULT = 0.5
 
 
-def judge_repeatedly(text, source=None, level=2, credential_var=None, passes=5,
+def judge_repeatedly(text, source=None, credential_var=None, passes=5,
                      jobs=4, timeout=900, gate=GATE_DEFAULT, model=MODEL_JUDGE):
     """Ask the judge several times, and report how often each rule appeared.
 
@@ -434,13 +434,13 @@ def judge_repeatedly(text, source=None, level=2, credential_var=None, passes=5,
         low-agreement  seen/passes <  gate, a real finding
         rejected       the judge considered the rule and dismissed it
 
-    Only "confirmed" rows should move a verdict. The other two are kept for a
-    human to audit the judge, not to score the text.
+    Only "confirmed" rows should count toward a weighted cost. The other two are
+    kept for a human to audit the judge, not to score the text.
     """
     runs, considered_runs, errors = [], [], []
 
     def one(_index):
-        return judge(text, source, level, credential_var, timeout, model)
+        return judge(text, source, credential_var, timeout, model)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, jobs)) as pool:
         for findings, considered, err in pool.map(one, range(passes)):
@@ -631,7 +631,6 @@ def main():
     ap.add_argument(
         "--limit", type=int, default=0, help="judge only the first N items"
     )
-    ap.add_argument("--level", type=int, default=2, choices=[1, 2, 3])
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--out", default=None, help="write the findings beside the result")
     ap.add_argument("--self-test", action="store_true")
@@ -679,7 +678,7 @@ def main():
                 continue
             source = entry.get("source") if args.arm != "source" else None
             summary, runs, err = judge_repeatedly(
-                text, source, args.level, credential_var, args.judge_passes,
+                text, source, credential_var, args.judge_passes,
                 args.jobs, gate=args.gate, model=args.judge_model[0],
             )
             if err:
@@ -695,7 +694,7 @@ def main():
             with open(path, encoding="utf-8") as fh:
                 text = fh.read()
             summary, runs, err = judge_repeatedly(
-                text, None, args.level, credential_var, args.judge_passes,
+                text, None, credential_var, args.judge_passes,
                 args.jobs, gate=args.gate, model=args.judge_model[0],
             )
             if err:
@@ -706,7 +705,6 @@ def main():
 
     if args.json or args.out:
         payload = {
-            "level": args.level,
             "arm": args.arm if args.result else None,
             "judge_model": args.judge_model[0],
             "passes": args.judge_passes,
@@ -971,8 +969,8 @@ def self_test():
     # SHAPE AS ANY OTHER JUDGE ANSWER: a candidate the judge CONFIRMS is just a
     # normal finding under the same rule ID, and joins `judge_repeatedly`'s
     # ordinary confirmed/low-agreement grouping (report.py's `build_entry` then
-    # treats it exactly like any other confirmed semantic finding — one verdict
-    # gate, not a fourth parallel one). A candidate the judge REJECTS lands in
+    # treats it exactly like any other confirmed semantic finding — one gate on
+    # `pass`, not a fourth parallel one). A candidate the judge REJECTS lands in
     # "considered", the existing dismissal mechanism, with status "rejected".
     replies = [
         ([finding("PSTE-G7", "restriction of the input", "high",

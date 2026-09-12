@@ -44,35 +44,22 @@ function stripFrontmatter(text) {
   return text.slice(end + 4).replace(/^\s*\n/, "");
 }
 
-/**
- * Keep only the row of the level table that applies. The other levels are noise
- * that competes for the model's attention.
- */
-function filterLevelTable(text, level) {
-  const lines = text.split("\n");
-  const out = [];
-  for (const line of lines) {
-    const row = line.match(/^\|\s*\*\*(\S+?)\*\*\s*\|/);
-    if (row && row[1] !== level) continue;
-    out.push(line);
-  }
-  return out.join("\n");
-}
-
 /** Used when SKILL.md cannot be found, so a hook-only install still works. */
-function fallbackRules(level) {
+function fallbackRules() {
   return [
-    `PSTE MODE ACTIVE (level: ${level}).`,
+    "PSTE MODE ACTIVE.",
     "",
     "Write your own prose in Programming Simplified Technical English.",
     "",
     "Say the result first. Name the actor and use the active voice. Use one word for",
-    "one meaning. Keep an instruction under 20 words and a description under 25. Use",
-    "simple tenses only, with no perfect tenses and no stacked auxiliaries. Do not use",
-    "contractions, semicolons, Latin abbreviations, marketing adjectives, or filler.",
-    "State uncertainty once and never stack hedges. Warn before an operation that",
-    "destroys something, state the scope before the command, and say what the reader",
-    "loses.",
+    "one meaning, from the approved word list. Keep an instruction under 20 words and",
+    "a description under 25. Use simple tenses only, with no perfect tenses and no",
+    "stacked auxiliaries. Do not use contractions, semicolons, Latin abbreviations,",
+    "marketing adjectives, or filler. State uncertainty once and never stack hedges.",
+    "Use a vertical list for three or more steps. Keep an instruction to one per",
+    "sentence. A note holds no instruction. Lead a warning with the command or the",
+    "condition. Warn before an operation that destroys something, state the scope",
+    "before the command, and say what the reader loses.",
     "",
     "Accuracy defeats every rule above. Never drop a fact, a condition, or a number to",
     "satisfy a word limit. Split the sentence instead.",
@@ -95,7 +82,7 @@ function main() {
 
   const skillPath = findSkillFile();
   if (!skillPath) {
-    process.stdout.write(fallbackRules(level));
+    process.stdout.write(fallbackRules());
     process.exit(0);
   }
 
@@ -103,13 +90,13 @@ function main() {
   try {
     body = fs.readFileSync(skillPath, "utf8");
   } catch {
-    process.stdout.write(fallbackRules(level));
+    process.stdout.write(fallbackRules());
     process.exit(0);
   }
 
-  const rules = filterLevelTable(stripFrontmatter(body), level);
+  const rules = stripFrontmatter(body);
   process.stdout.write(
-    `PSTE MODE ACTIVE (level: ${level}). Follow these rules for prose you write.\n\n${rules}`
+    `PSTE MODE ACTIVE. Follow these rules for prose you write.\n\n${rules}`
   );
 }
 

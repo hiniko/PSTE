@@ -1,0 +1,94 @@
+<title>Reading an eval page</title>
+<meta name="description" content="What an eval page shows: the three arms, a finding, a rule, an agreement ratio, a weight, and the clean-sentence rate.">
+<link rel="stylesheet" href="style.css">
+
+<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Eval runs</a> <a href="index.html#get-pste">Get PSTE</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+
+<div class="wrap">
+
+<h1>Reading an eval page</h1>
+
+<p class="lede">An eval page shows the same corpus document under three arms, with every finding marked. This page explains what each part means.</p>
+
+<div class="honest">
+<p>A conformance result is not a measure of quality. Nobody has yet run a reading trial with people. This page explains what the viewer shows, not what the numbers prove.</p>
+</div>
+
+<h2>The three arms</h2>
+
+<p>Each document goes through three arms, plus the source column. Every arm answers the same request, so a difference between arms is the difference the request made.</p>
+
+<ul>
+<li><strong>Source.</strong> The committed document. It is not generated, and every rewrite starts here.</li>
+<li><strong>Control.</strong> A plain request to simplify the text. It carries no other instruction.</li>
+<li><strong>PSTE.</strong> The same plain request. This arm also carries the PSTE skill.</li>
+<li><strong>PSTE, fixed.</strong> The PSTE arm's draft. One fix pass then ran against the checker's own findings.</li>
+</ul>
+
+<p>The comparison that matters is PSTE against control. Both get the same request. The skill is the only difference, so a gap between the two arms is the skill's own effect.</p>
+
+<h2>A finding and a rule</h2>
+
+<p>A finding is one place in the text where a checker says a rule broke. Click a finding in the list, and the matching span highlights in the text above it.</p>
+
+<p>Each finding names a rule, such as PSTE-N5 or PSTE-A1. PSTE-1 numbers every rule. A rule identifier lets a reader find the exact clause a finding cites, instead of a paraphrase of it.</p>
+
+<h2>Mechanical and judged findings</h2>
+
+<p>Two different checkers write findings, and the page marks them apart.</p>
+
+<p>A mechanical finding comes from <code>pste_lint.py</code>, a fixed set of pattern checks. It runs in a fraction of a second, and it gives the same response every time. It implements 29 of PSTE-1's 70 rules, the ones a pattern can catch without judging meaning.</p>
+
+<p>A judged finding comes from a language model reading the text, under "Judge findings" on the page. It covers rules a pattern cannot decide, such as whether a sentence names its actor or buries an instruction inside a description. It runs slower, costs money to call, and a repeat run can reach a different response on the same text.</p>
+
+<h2>Agreement ratios</h2>
+
+<p>A judged finding shows a ratio such as 4/5. The judge read the same text on five separate passes, and confirmed the finding on four of those passes.</p>
+
+<p>A single model call is one opinion, not a measurement. Asking repeatedly and counting agreement is how the page shows that a judge can disagree with itself between runs on the same fixed text. A finding needs agreement at or above a set gate to count as CONFIRMED and count toward the weighted cost. A finding below the gate shows as LOW AGREEMENT, and a finding the judge considered and dismissed shows as REJECTED. Both stay visible, for a reader to audit the judge, but neither affects the weighted cost.</p>
+
+<p>A run can also send a document to more than one judge model. When every judge that ran on a document confirms the same rule, that finding shows as OVERLAP: the strongest form of agreement, because two separate models agree and not one model agreeing with its earlier self.</p>
+
+<h2>The fact-loss gate</h2>
+
+<p>A rewrite can follow every rule by leaving something out. Fewer facts means fewer words, and fewer words means fewer chances to break a rule.</p>
+
+<p>The fact-loss check compares a rewrite against its source, and looks for a dropped number, unit, identifier, negation, or obligation. A rewrite that drops one of these is marked FACT LOSS, regardless of how clean its other findings read. This check catches a missing token. It does not read for a changed meaning, so a clean result here is not proof that a rewrite stayed faithful.</p>
+
+<h2>Weighted cost</h2>
+
+<p>Not every broken rule costs a reader the same. PSTE-1 assigns each rule a weight from 0 to 1: a dropped fact carries the full weight of 1.0, and a missing hyphen carries 0.1.</p>
+
+<p>The weighted cost sums each finding's own weight. Ten trivial findings and one dropped fact do not then read as the same size of fault. It stays a conformance count, not a quality score. A low weighted cost says the broken rules cost little by PSTE-1's own scale. It says nothing about whether the prose reads well.</p>
+
+<p>A cell with a weighted cost of 0 carries no countable mechanical finding, no fact loss, and no confirmed judged finding. That holds for this one run only. It is not a claim that the text reads well. It is not a claim that a person finds it easier.</p>
+
+<h2>Clean-sentence rate</h2>
+
+<p>PSTE counts by the sentence. The word limits in N1 and N2 are sentence rules, and so is the six-sentence limit in D2. A reader meets the text one sentence at a time.</p>
+
+<p>The clean-sentence rate is the share of sentences with no finding at all. A document-level percentage hides a difference that matters. Ten findings crowded into one sentence and ten findings shared across ten sentences are not the same fault.</p>
+
+<h2>UNJUDGED and NOT JUDGED</h2>
+
+<p>A cell can go unchecked by the judge entirely. The page marks this apart from an ordinary finding, so a reader never mistakes an unchecked document for one the judge read and rejected.</p>
+
+<p>UNJUDGED means the judge step ran, but every call for this one cell failed, most often an API limit. The mechanical and fact-loss checks still ran. Over half of PSTE-1's rules need a judge, and none of them got checked here.</p>
+
+<p>NOT JUDGED means this cell was never sent to a judge at all. A large run judges a fixed set of anchor documents every time, and rotates the judge across the rest to control cost. A NOT JUDGED cell was excluded by that plan, not by an error.</p>
+
+<p>Neither state counts as clean. Both mean the same thing to a reader: this text has not been checked against the rules that need a judge, so no weighted cost can be claimed complete for it yet.</p>
+
+<h2>Read further</h2>
+
+<p><a href="https://github.com/hiniko/PSTE/blob/main/evals/OVERVIEW.md">evals/OVERVIEW.md</a> covers this same ground for a reader of the repository, with the corpus, the licenses, and the self-tests. <a href="https://github.com/hiniko/PSTE/blob/main/evals/README.md">evals/README.md</a> covers the arms, the judge, and the rule weights in full depth.</p>
+
+</div>
+
+<footer class="site">
+
+<p>PSTE is MIT licensed. The corpus keeps the license of each source document. <a href="https://github.com/hiniko/PSTE">hiniko/PSTE on GitHub</a>.</p>
+
+</footer>
+
+<script src="theme.js"></script>

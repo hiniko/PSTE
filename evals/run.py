@@ -171,8 +171,11 @@ JOBS_DEFAULT = 24
 # every document; only the judge is rationed.
 #
 # Two ANCHOR documents are judged every run, so a reader can compare one run to
-# the next on the same ground. `migration-django-upgrade` was chosen for the most
-# findings and the most headroom to improve.
+# the next on the same ground. `runbook-cassandra-repair` is the real document
+# with the most findings and so the most headroom to improve. It replaced
+# `migration-django-upgrade`, which was retired from the corpus: its opening was
+# a reStructuredText title block, which made it a poor showcase, and it was the
+# weakest document in the set to read a before-and-after from.
 #
 # The synthetic anchor was `synth-evidence`, retired along with the other four
 # self-referential synth-* documents (see evals/corpus_generate.py: those five
@@ -183,7 +186,7 @@ JOBS_DEFAULT = 24
 # rewrite to get right or wrong, which is what makes a document worth anchoring
 # on. This is a module constant, not a hardcoded branch, so changing the anchors
 # needs no code change — edit this list or pass `--anchor-docs`.
-ANCHOR_DOCS_DEFAULT = ["synth-prometheus-query-basics", "migration-django-upgrade"]
+ANCHOR_DOCS_DEFAULT = ["synth-prometheus-query-basics", "runbook-cassandra-repair"]
 
 # Non-anchor documents judged alongside the anchors each run, for coverage and
 # to catch the skill overfitting to the two anchors specifically.
@@ -436,17 +439,6 @@ def main():
         "sampled run at the default counts). Use for a publication run.",
     )
     ap.add_argument(
-        "--level",
-        type=int,
-        default=2,
-        choices=[1, 2, 3],
-        help="the conformance level the judge applies. Level 3 makes the "
-        "vocabulary rules MUST, and PSTE-C3 asks for it on a runbook, on "
-        "release notes, and on published documentation. A page is written for "
-        "level 2 and for level 3 whatever this says, because a page costs no "
-        "model call.",
-    )
-    ap.add_argument(
         "--fix-pass",
         dest="fix_pass",
         action="store_true",
@@ -674,7 +666,7 @@ def main():
             draft = results[document]["outputs"].get("pste")
             if not draft:
                 continue  # generation failed for this cell; nothing to fix
-            checked = pste_lint.check_text(draft, level=args.level, vocab=vocab)
+            checked = pste_lint.check_text(draft, vocab=vocab)
             if not checked["findings"]:
                 # No findings, no call. This is the common case once the skill
                 # itself is good, and it is what keeps the fix pass cheap.
@@ -792,8 +784,8 @@ def main():
                 # `build_entry` already forces `pass=False` for anything the
                 # judge has not actually looked at — see the note on
                 # `judge_sample` in the module docstring for why an excluded
-                # cell still can't claim PASS. `sampled_out` is what tells the
-                # two apart on the JSON and the page.
+                # cell still can't register as clean. `sampled_out` is what
+                # tells the two apart on the JSON and the page.
                 results[document].setdefault("semantic", {})[arm] = {
                     "unjudged": True,
                     "sampled_out": True,
@@ -825,7 +817,6 @@ def main():
                     return target, semantic_lint.judge_repeatedly(
                         results[document]["outputs"][arm],
                         source=results[document]["source"],
-                        level=args.level,
                         credential_var=credential_var,
                         passes=args.judge_passes,
                         jobs=pass_jobs,
@@ -940,11 +931,10 @@ def main():
     payload = {
         "schema": 2,
         "git": info,
-        # WHICH MODEL PRODUCED THIS RESULT. PSTE-C2 says a tool that checks
-        # conformance MUST report the level it checked; the same reasoning
-        # applies here — a result that does not say what produced it cannot
-        # be compared with another one. `cli` is the CLI version, not the
-        # model: the two drift independently, so both are recorded.
+        # WHICH MODEL PRODUCED THIS RESULT. A result that does not say what
+        # produced it cannot be compared with another one. `cli` is the CLI
+        # version, not the model: the two drift independently, so both are
+        # recorded.
         "models": {
             "generation": args.generation_model,
             "fix_pass": args.generation_model if args.fix_pass else None,
@@ -964,11 +954,6 @@ def main():
         "jobs": args.jobs,
         "semantic_passes": args.judge_passes,
         "semantic_gate": semantic_lint.GATE_DEFAULT,
-        # PSTE-C2: a tool that checks conformance MUST report the level it
-        # checked. Level 2 and level 3 differ only in whether the vocabulary
-        # rules are MUST, so a result that does not say which one it applied
-        # cannot be read.
-        "level": args.level,
         # Absent when the judgement ran, so a reader can tell a stage that was
         # lost from one that was never asked for.
         "semantic_error": semantic_error,
@@ -1029,10 +1014,9 @@ def main():
     try:
         import report
 
-        # Both pages, always. A page is built from the stored text by the local
-        # checker, so it costs no model call, and level 3 answers a question
-        # level 2 cannot: whether the vocabulary rules changed anything.
-        for path in report.write_pages(payload, out_path, levels=(2, 3)):
+        # A page is built from the stored text by the local checker, so it
+        # costs no model call.
+        for path in report.write_pages(payload, out_path):
             print(f"  report {path}")
     except Exception as exc:  # noqa: BLE001
         # The measurement is in the JSON, which is already on disk. A page
@@ -1046,7 +1030,7 @@ def main():
         )
         print(
             "This run is INCOMPLETE. Read the result before you compare it — "
-            "report.py marks every failed cell UNJUDGED rather than PASS.",
+            "report.py marks every failed cell UNJUDGED rather than clean.",
             file=sys.stderr,
         )
     return 1 if failures else 0
@@ -1149,7 +1133,7 @@ def self_test():
     # configurable without touching the sampling logic — a module constant a
     # caller can override, not a name baked into `judge_sample`.
     assert ANCHOR_DOCS_DEFAULT == [
-        "synth-prometheus-query-basics", "migration-django-upgrade",
+        "synth-prometheus-query-basics", "runbook-cassandra-repair",
     ], ANCHOR_DOCS_DEFAULT
     docs = sorted(corpus.load(), key=lambda d: d["id"])
     doc_ids = [d["id"] for d in docs]
@@ -1236,7 +1220,7 @@ def self_test():
     for doc in docs[:3]:  # a few real documents is enough to prove the path
         with open(corpus.path_of(doc), encoding="utf-8") as fh:
             source = fh.read()
-        entry = _report.build_entry(source, 2, vocab, semantic=None)
+        entry = _report.build_entry(source, vocab, semantic=None)
         assert entry["missing"] is False, doc["id"]
         assert "findings" in entry and "words" in entry, doc["id"]
 
@@ -1253,20 +1237,21 @@ def self_test():
     assert "default=3" in flag_block, \
         "the --judge-passes default must be 3 (the user found 5 too expensive)"
 
-    # The level reaches the judge from the flag, and is recorded in the result.
-    # Level 2 and level 3 differ only in whether the vocabulary rules are MUST,
-    # so a hardcoded level measures one thing and reports another.
+    # PSTE has one level: every rule applies, and the vocabulary rules are
+    # MUST. There is no per-level flag left to reach the judge or the result,
+    # and `write_pages` writes a single page. A flag reappearing in this file
+    # would mean the old branch crept back in.
     src = open(__file__, encoding="utf-8").read()
-    assert "level=args.level," in src, "the judge must take the level from the flag"
-    judge_call = src.split("judge_repeatedly(", 1)[1].split(")", 1)[0]
-    assert "level=2" not in judge_call, "no hardcoded level reaches the judge"
-    assert '"level": args.level,' in src, "PSTE-C2: a result states its level"
-    assert "levels=(2, 3)" in src, "a page is written for both levels"
+    level_flag = "-" + "-level"
+    level_kwarg = "level" + "="
+    assert level_flag not in src, "the level flag must not come back"
+    assert level_kwarg not in src, "no call in this file should take a level again"
+    assert "write_pages(payload, out_path)" in src, \
+        "a page is written once, with no levels tuple"
 
     # THE MODEL MUST REACH THE RESULT JSON. A result that does not say what
-    # produced it cannot be compared with another one — PSTE-C2's reasoning
-    # applied to the model instead of the level. Checked at the source level:
-    # the payload must carry a `models` block naming the generation model and
+    # produced it cannot be compared with another one. Checked at the source
+    # level: the payload must carry a `models` block naming the generation model and
     # the judge model(s) actually used (args.judge_model, defaulting to
     # semantic_lint.MODEL_JUDGE — see the --judge-model flag), plus the CLI
     # version.

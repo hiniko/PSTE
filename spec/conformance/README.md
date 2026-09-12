@@ -59,4 +59,4 @@ A counter-example that puts the negation and the quoted phrase on different line
 detected. Use `pste-lint: ignore` on such a line.
 
 The checker measures rule conformance. It does not measure readability, and it does not
-measure quality. A clean report is necessary, not sufficient.
+measure quality. A clean report is necessary, but not enough on its own.

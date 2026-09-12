@@ -61,6 +61,7 @@ common_nouns:
   - commit
   - compaction
   - compiler
+  - condition
   - config
   - consumer
   - container
@@ -109,6 +110,7 @@ common_nouns:
   - heartbeat
   - histogram
   - hook
+  - identifier
   - idempotent
   - index
   - inference
@@ -251,8 +253,8 @@ term_verbs:
 
   - id: BV1
     name: Version control and delivery
-    verbs: [commit, branch, merge, rebase, cherry-pick, revert, tag, release, deploy,
-            roll back, promote, ship, deprecate, backport]
+    verbs: [commit, branch, clone, merge, rebase, cherry-pick, revert, tag, release,
+            deploy, roll back, promote, ship, deprecate, backport]
 
   - id: BV2
     name: Program construction

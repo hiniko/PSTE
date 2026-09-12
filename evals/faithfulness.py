@@ -509,7 +509,7 @@ def self_test():
     # BUG: IDENT_RE captures a hard-wrapped role target VERBATIM, newline
     # included, and the rewrite reflows the line. Both sides keep every word,
     # but a literal string compare of the captured spans still reported a
-    # critical fact loss (migration-django-upgrade, both arms). The fix is at
+    # critical fact loss (a migration guide, both arms). The fix is at
     # compare time, not capture time: _identifiers keeps the raw newline (a
     # caller may want it), but compare() collapses whitespace on both sides
     # before it decides an identifier is missing.

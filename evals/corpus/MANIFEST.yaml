@@ -48,18 +48,6 @@
 version: 1
 
 documents:
-  - id: migration-django-upgrade
-    type: "migration guide"
-    title: "How to upgrade Django to a newer version"
-    url: https://raw.githubusercontent.com/django/django/main/docs/howto/upgrade-version.txt
-    author: "Django Software Foundation and individual contributors"
-    licence: BSD-3-Clause
-    retrieved: 2026-08-03
-    sha256: de80f39ffa878b78b33267383e076f10339648cc718be18d366c5b880dc18763
-    words: 806
-    excerpt: false
-    note: "reStructuredText source, with its markup. Real documentation carries
-      markup, and a rewrite has to cope with it."
   - id: postmortem-chia-mempool-fastforward
     type: "incident report"
     title: "Block creation impacted due to mempool issues"

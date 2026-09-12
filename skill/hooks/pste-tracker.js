@@ -3,9 +3,9 @@
  * UserPromptSubmit hook. Layers 2 and 3 of the anti-drift design.
  *
  * Three jobs, on every user turn:
- *   1. Parse /pste commands and natural-language activation, and write the level.
- *   2. Select level 3 automatically when the user asks for an artifact that
- *      PSTE-C3 names, unless the repository turns that off.
+ *   1. Parse /pste commands and natural-language activation, and write on/off.
+ *   2. Turn PSTE on automatically when the user asks for an artifact type
+ *      AUTO_ON_ARTIFACTS names, unless the repository turns that off.
  *   3. Inject a short reminder, which survives competing instructions from other
  *      plugins and keeps the rules in the model's attention.
  *
@@ -51,36 +51,20 @@ function emit(context) {
   );
 }
 
-/** The per-turn anchor. Level-specific, and always carries the scope boundary. */
-function reminder(level, autoStrict) {
-  if (level === "lite") {
-    return (
-      "PSTE ACTIVE (lite). Cut filler, hedging, and marketing adjectives. " +
-      "Active voice, named actor. Result first. " +
-      "Code, quotes, and identifiers: verbatim."
-    );
-  }
-
-  const base =
-    `PSTE ACTIVE (${level}). Result first. Active voice, named actor. ` +
-    "One word one meaning. Simple tenses only. No contractions, semicolons, " +
-    "Latin abbreviations, marketing adjectives, or filler. State uncertainty once. " +
+/** The per-turn anchor. Always carries the scope boundary. */
+function reminder(autoOn) {
+  return (
+    "PSTE ACTIVE. Result first. Active voice, named actor. " +
+    "One word one meaning, from the approved word list. Simple tenses only. " +
+    "No contractions, semicolons, Latin abbreviations, marketing adjectives, or " +
+    "filler. State uncertainty once. One instruction per sentence. A vertical " +
+    "list for three or more steps. A note holds no instruction. Lead a warning " +
+    "with the command or the condition. " +
     "Instruction under 20 words, description under 25. " +
     "Code, quotes, identifiers, commit messages: verbatim or repository style. " +
-    "Accuracy defeats every rule: never drop a fact to meet a word limit.";
-
-  if (level === "strict") {
-    return (
-      base +
-      " STRICT: use the approved word list, one instruction per sentence, " +
-      "vertical lists for three or more steps, and lead a warning with the command " +
-      "or the condition." +
-      (autoStrict
-        ? " Level 3 selected automatically for this artifact type."
-        : "")
-    );
-  }
-  return base;
+    "Accuracy defeats every rule: never drop a fact to meet a word limit." +
+    (autoOn ? " PSTE turned on automatically for this artifact type." : "")
+  );
 }
 
 function main() {
@@ -90,17 +74,19 @@ function main() {
 
   let level = cfg.readLevel();
 
-  // 1. Explicit command wins over everything.
+  // 1. Explicit command wins over everything. "/pste" and "/pste on" both mean
+  //    the same thing as the default: turn PSTE on.
   const cmd = prompt.match(COMMAND_RE);
   if (cmd) {
-    const arg = (cmd[1] || cfg.DEFAULT_LEVEL).toLowerCase();
+    const raw = (cmd[1] || "on").toLowerCase();
+    const arg = raw === "on" ? cfg.DEFAULT_LEVEL : raw;
     if (cfg.VALID_LEVELS.includes(arg)) {
       cfg.writeLevel(arg);
       if (arg === "off") {
         emit("PSTE is off. Write normal prose.");
         return;
       }
-      emit(`PSTE level set to ${arg}. ` + reminder(arg, false));
+      emit("PSTE turned on. " + reminder(false));
       return;
     }
   }
@@ -119,19 +105,16 @@ function main() {
   }
 
   if (level === "off") {
+    // 3. Turn PSTE on for this one turn when the prompt asks for an artifact
+    //    type AUTO_ON_ARTIFACTS names. This does not overwrite the stored
+    //    on/off state, the same way the command above does.
+    if (cfg.wantsOn(prompt, cwd)) {
+      emit(reminder(true));
+    }
     process.exit(0);
   }
 
-  // 3. Auto-select level 3 for the artifact types in PSTE-C3. This raises the
-  //    level for one turn and does not overwrite the user's chosen level.
-  let effective = level;
-  let auto = false;
-  if (level !== "strict" && cfg.wantsStrict(prompt, cwd)) {
-    effective = "strict";
-    auto = true;
-  }
-
-  emit(reminder(effective, auto));
+  emit(reminder(false));
 }
 
 try {

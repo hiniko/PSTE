@@ -1,0 +1,96 @@
+<title>PSTE</title>
+<meta name="description" content="Programming Simplified Technical English: a controlled English for prose about software, with a before-and-after comparison and the eval corpus.">
+<link rel="stylesheet" href="style.css">
+
+<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Eval runs</a> <a href="index.html#get-pste">Get PSTE</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+
+<div class="wrap">
+
+<p class="pill">This page follows PSTE.</p>
+
+<h1>Programming Simplified Technical English</h1>
+
+<p class="lede">This page follows PSTE. You read an example, not a demo.</p>
+
+<h2>What PSTE is</h2>
+
+<p>PSTE is a controlled English for prose about software. It sets a restricted vocabulary and a fixed grammar. A tired reader gets the fact without decoding the sentence. A reader whose first language is not English gets the same result.</p>
+
+<p>PSTE governs form, not substance. It does not change what a writer knows, only how a writer says it.</p>
+
+<p>A sentence follows fixed limits. An instruction stays under 20 words. A description stays under 25. A paragraph holds six sentences at most.</p>
+
+<p>The verb stays active, and the actor stays named.</p>
+
+<p>Read the <a href="spec.html">full specification</a> on this site, or <a href="https://github.com/hiniko/PSTE/blob/main/spec/PSTE-1.md">spec/PSTE-1.md</a> on GitHub. The short version is <a href="https://github.com/hiniko/PSTE/blob/main/spec/STANDARD.md">spec/STANDARD.md</a> on GitHub.</p>
+
+<p>This page follows PSTE. You are already reading an example of it, not a description.</p>
+
+<h2>Example</h2>
+
+<p>The passage below comes from the published Caddy documentation. The skill rewrote it, and then corrected the rewrite.</p>
+
+<div class="compare">
+  <div class="col before">
+    <div class="label">Before</div>
+    <div class="text">Caddy doesn't need a special "enable HTTPS" switch. It turns on automatic HTTPS the moment it sees a domain name or IP address somewhere in your configuration — a site address in the Caddyfile, a host matcher in a JSON route, a <code>--domain</code> or <code>--from</code> flag on the command line, or a name in the <code>automate</code> certificate loader.</div> <!-- pste-lint: ignore -->
+  </div>
+  <div class="col after">
+    <div class="label">After</div>
+    <div class="text">Caddy has no "enable HTTPS" switch. It turns on automatic HTTPS when it finds a domain name or an IP address in your configuration. Caddy looks in these places:
+- a site address in the Caddyfile
+- a host matcher in a JSON route
+- a <code>--domain</code> or <code>--from</code> flag on the command line
+- a name in the <code>automate</code> certificate loader</div> <!-- pste-lint: ignore -->
+  </div>
+</div>
+
+<h3>What changed, and why</h3>
+
+<p>The published text broke four rules. A contraction broke rule <a class="rule" href="spec.html#PSTE-N3">PSTE-N3</a>, no contractions. An em dash joining two clauses broke rule <a class="rule" href="spec.html#PSTE-X5">PSTE-X5</a>, the em dash rule.</p>
+
+<p>The long opening sentence broke rule <a class="rule" href="spec.html#PSTE-N2">PSTE-N2</a>, the 25-word limit. Naming four places inside one sentence broke rule <a class="rule" href="spec.html#PSTE-D4">PSTE-D4</a>, the three-item list rule.</p>
+
+<p>The rewrite fixed all four. "Does not" replaced the contraction. The em dash became two sentences. The long sentence split into a short sentence and a list. The four places became four list items.</p>
+
+<h2 id="get-pste">Get PSTE</h2>
+
+<p>PSTE is a plugin for Claude Code. The repository is also a plugin marketplace, so two
+commands install it. Run them inside Claude Code:</p>
+
+<pre><code>/plugin marketplace add hiniko/PSTE
+/plugin install pste@hiniko</code></pre>
+
+<p>The first command adds the marketplace. The second installs the plugin from it. To get a
+later version, run <code>/plugin marketplace update</code>.</p>
+
+<p>The plugin carries the skill, the <code>/pste</code> command, and two hooks. The hooks
+keep the rules active across a long session.</p>
+
+<p>You can also install the skill by hand. Clone <a href="https://github.com/hiniko/PSTE">hiniko/PSTE</a>.
+Then copy <code>skill/</code> into your Claude Code skills directory as <code>pste/</code>.
+The path ends <code>pste/SKILL.md</code>.</p>
+
+<p>Once the skill is active, run <code>/pste on</code> or <code>/pste off</code>.
+There is one standard, and every rule in it applies.</p> <!-- pste-lint: ignore -->
+
+<p>The checker is a single Python file at <code>evals/pste_lint.py</code>. It needs no
+third-party package and no install step.</p>
+
+<div class="honest">
+
+<h3>What is known, and what is not</h3>
+
+<p>No reading trial with people happened yet. Until one does, the honest claim is that this text passes automatic checks. <a href="https://github.com/hiniko/PSTE/blob/main/evals/FUTURE-WORK.md">Read the trial design</a>.</p>
+
+</div>
+
+</div>
+
+<footer class="site">
+
+<p>PSTE is MIT licensed. The corpus keeps the license of each source document. <a href="https://github.com/hiniko/PSTE">hiniko/PSTE on GitHub</a>.</p>
+
+</footer>
+
+<script src="theme.js"></script>

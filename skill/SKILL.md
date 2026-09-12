@@ -4,7 +4,7 @@ description: >
   Write user-facing prose in Programming Simplified Technical English (PSTE) — a
   controlled English for software communication. Makes output easier to read and
   easier to share, especially for tired readers and non-native English speakers.
-  Supports levels: lite, pste (default), strict.
+  On by default; turn off with /pste off.
   Use when the user says "pste", "simplified english", "controlled english",
   "plain technical english", or invokes /pste. Also use when the user asks for
   documentation, release notes, runbooks, or error text that must read clearly.
@@ -23,7 +23,7 @@ carefully you think. Never trade a fact for a shorter sentence.
 ACTIVE EVERY RESPONSE. No drift back to loose prose after many turns. Still active if
 unsure. Off only: "stop pste" / "normal mode".
 
-Default: **pste**. Switch: `/pste lite|pste|strict|off`.
+On by default. Switch: `/pste on|off`.
 
 ## Scope — what these rules govern
 
@@ -63,9 +63,10 @@ rejected". Software prose has too many candidate actors — user, agent, CI, run
 a reader to recover the missing one. Passive voice is permitted only in description, and
 only when the actor is genuinely unknown.
 
-**One word, one meaning. One action, one verb.** Pick a verb and keep it. Do not rotate
-`check` / `verify` / `confirm` / `validate` — a reader must decide whether each new word
-signals a new meaning, and that decision costs time.
+**One word, one meaning. One action, one verb.** Use a word from the approved word
+list. Pick a verb and keep it. Do not rotate `check` / `verify` / `confirm` /
+`validate` — a reader must decide whether each new word signals a new meaning, and
+that decision costs time.
 
 Standard choices:
 `check` (not verify/confirm/validate/inspect) · `make sure` (not ensure/guarantee) ·
@@ -215,6 +216,9 @@ easier to check off, and impossible to misread the order of.
 **Conditions come first.** "If the build fails, read the log." Not "read the log if the
 build fails."
 
+**A note holds information only, never an instruction.** Write the step in the
+procedure, not in a note beside it. A reader who skips notes must never skip a step.
+
 **Warn before damage.** Before an operation that destroys data, that the reader cannot
 reverse, or that touches production: state the scope first, then the command. "This
 deletes every row in `users`. Run the backup first." Say what the reader loses, precisely
@@ -283,14 +287,6 @@ clean in every hundred. The same draft, revised against a checker's list, left 9
 A revision asked for without the list changed nothing at all, because the fault a
 writer cannot see is the fault a second reading does not find either.
 
-## Levels
-
-| Level | What changes |
-|-------|------------|
-| **lite** | Grammar and slop rules only. Remove filler, hedging, marketing adjectives, nominalizations, phrasal verbs. Active voice. Keep normal sentence length and free vocabulary. |
-| **pste** | Default. Everything above, plus: named actor, simple tenses only, one word one meaning, 20/25-word limits, no contractions, no semicolons, multi-word nouns max 3, result first. Vocabulary guided by the standard verb list. |
-| **strict** | Everything above, plus: the approved word list is enforced, one instruction per sentence, vertical lists for 3+ steps, notes hold information and never instructions, warnings lead with the command or the condition. Use for runbooks, procedures, release notes, error text, and published documentation. |
-
 ## Examples
 
 Not PSTE:
@@ -345,8 +341,8 @@ Resume normal limits after the clear part is done.
 ## Boundaries
 
 Code, commit messages, and pull request text: follow the repository's style, not PSTE.
-Quoted text: verbatim, always. "stop pste" or "normal mode": revert. Level persists until
-changed or the session ends.
+Quoted text: verbatim, always. "stop pste" or "normal mode": revert. On/off persists
+until changed or the session ends.
 
 Never announce the mode. Never write "PSTE mode on" or label your output. Just write this
 way. Exception: the user asks what the mode is.

@@ -1,0 +1,15 @@
+{
+  "name": "hiniko",
+  "owner": {
+    "name": "hiniko",
+    "url": "https://github.com/hiniko"
+  },
+  "description": "Programming Simplified Technical English: the skill, the specification, and the checker.",
+  "plugins": [
+    {
+      "name": "pste",
+      "source": ".",
+      "description": "Programming Simplified Technical English. Writes user-facing prose in a controlled English that is easier to read and easier to share."
+    }
+  ]
+}

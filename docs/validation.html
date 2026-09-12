@@ -1,0 +1,73 @@
+<title>Validation</title>
+<meta name="description" content="How this project checks PSTE: the corpus, the three arms, the judge, the fact-loss gate, and what the numbers do and do not show.">
+<link rel="stylesheet" href="style.css">
+
+<header class="site"><div class="brand"><a href="index.html">PSTE</a></div><nav class="top"><a href="examples.html">Examples</a> <a href="spec.html">Specification</a> <a href="validation.html">Validation</a> <a href="results/index.html">Eval runs</a> <a href="index.html#get-pste">Get PSTE</a> <button id="theme-toggle" aria-label="Toggle light and dark theme"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14V1Z" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"/></svg></button> <a href="https://github.com/hiniko/PSTE" aria-label="PSTE on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.66 7.66 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></nav></header> <!-- pste-lint: ignore -->
+
+<div class="wrap">
+
+<p class="pill">This page follows PSTE.</p>
+
+<h1>Validation</h1>
+
+<p class="lede">This project uses the word "checker" for two different tools. This page keeps them apart, and shows how PSTE gets tested.</p>
+
+<h2>Two different checkers</h2>
+
+<p>A checker at <code>evals/pste_lint.py</code> checks one document. A writer runs it against a single file, and it reports every finding with its weight and a weighted total. It is a tool, like a linter.</p>
+
+<p>The eval suite is a different thing. It tests whether PSTE itself works: whether the skill beats a plain request, whether a fix pass helps, and whether any of that costs the reader a fact. The suite uses a corpus, three arms, a judge, and a fact-loss gate.</p>
+
+<h2>The corpus, and where it came from</h2>
+
+<p>The corpus holds 13 documents. Eight are real documents that people wrote for real projects. Five are synthetic: a model wrote them, in a clean container, each one grounded in a fetch of a real upstream page.</p>
+
+<p>Four licenses appear in the corpus: CC-BY-4.0, Apache-2.0, BSD-3-Clause, and CC0-1.0. Every document carries its URL, its author, and its attribution. The tooling refuses a license outside the allowed set.</p>
+
+<p><a href="examples.html">Browse the corpus</a> to see every document, its type, and its license.</p>
+
+<h2>How a run works</h2>
+
+<p>Each run tries three arms against the same corpus document. A plain request asks a model to simplify the text, with no other instruction. The skill arm adds the PSTE skill to the same request. A third arm takes the skill's draft and runs one fix pass against the checker's findings.</p>
+
+<p>The comparison that matters is the skill against the plain request. Both get the same ask. The skill is the only difference, so a gap between them is the skill's effect.</p>
+
+<p>A fix pass can remove a fact to satisfy a rule. A fact-loss gate catches this: when a fix drops a fact the draft still had, the run keeps the draft and discards the fix. A judge model then reads every draft and confirms or rejects the findings the mechanical checker could not decide alone.</p>
+
+<h2>How the project verifies itself</h2>
+
+<p>Twelve scripts in this repository carry a self-test flag, which runs a fixed set of cases and needs no network call and no model. A separate check compares every corpus file against its recorded checksum, and another compares the generated word-list appendices against their source.</p>
+
+<p>None of these checks costs money, and none depends on a model being available.</p>
+
+<h2>What the numbers say, and what they do not</h2>
+
+<p>A checker can count rule violations. It cannot measure whether a person reads the text more easily. Nobody ran a reading trial with people yet.</p>
+
+<p>The numbers below report one thing: the share of sentences in the corpus that carry no finding from a checker. That checker implements 29 of PSTE-1's 70 rules. The count is not a quality score, and PSTE-1 itself says so.</p>
+
+<table class="numbers"><thead><tr><th>Arm</th><th class="n">Sentences clean per hundred</th></tr></thead><tbody><tr><td>Source documents, as published</td><td class="n">47.5</td></tr><tr><td>A plain request to simplify</td><td class="n">73.6</td></tr><tr><td>The skill</td><td class="n">83.9</td></tr><tr><td>The skill and a fix pass</td><td class="n">96.0</td></tr></tbody></table> <!-- pste-lint: ignore -->
+
+<p>The source documents, as published, leave 47.5 sentences clean in every hundred. A plain request to simplify them reaches 73.6. The skill reaches 83.9. The skill, plus a fix pass against the checker's findings, reaches 96.0.</p>
+
+<div class="honest">
+
+<h3>What is known, and what is not</h3>
+
+<p>A conformance result is not a measure of quality. No reading trial with people ran yet. Until one runs, the honest claim is that this text passes automatic checks. It is not that this text is easier to read. <a href="https://github.com/hiniko/PSTE/blob/main/evals/FUTURE-WORK.md">Read the trial design</a>.</p>
+
+</div>
+
+<h2>Read more</h2>
+
+<p>The GitHub repository holds the full depth: <a href="https://github.com/hiniko/PSTE/blob/main/evals/OVERVIEW.md">evals/OVERVIEW.md</a> for this same ground in more detail, and <a href="https://github.com/hiniko/PSTE/blob/main/evals/README.md">evals/README.md</a> for the arms, the judge, and the rule weights.</p>
+
+</div>
+
+<footer class="site">
+
+<p>PSTE is MIT licensed. The corpus keeps the license of each source document. <a href="https://github.com/hiniko/PSTE">hiniko/PSTE on GitHub</a>.</p>
+
+</footer>
+
+<script src="theme.js"></script>

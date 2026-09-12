@@ -8,7 +8,6 @@ are duplicated here.
 Usage:
     pste_lint.py FILE...              check files, table output
     pste_lint.py --json FILE...       machine-readable
-    pste_lint.py --level 3 FILE...    enforce vocabulary (default 2)
     pste_lint.py --self-test          run the conformance cases
 
 Exit status is 1 when findings exist, so this works as a pre-commit hook.
@@ -231,10 +230,11 @@ def load_vocab(spec_dir=SPEC_DIR):
 def load_weights(spec_dir=SPEC_DIR):
     """Read the rule-weight table from spec/rule_weights.csv.
 
-    PSTE-1.md §15.5 is the normative table; this file is `lib/build_appendix.py`'s
-    generated copy, read here so a caller never needs to parse markdown to get a
-    weight. A caller who wants to check the spec and the CSV agree reads both and
-    compares, the same way `evals/pste_lint.py --self-test` does (see §15.6).
+    Each rule's inline `*Weight: N.N.* reason...` annotation in PSTE-1.md is
+    normative; this file is `lib/build_appendix.py`'s generated copy, read here so
+    a caller never needs to parse markdown to get a weight. A caller who wants to
+    check the spec and the CSV agree reads both and compares, the same way
+    `evals/pste_lint.py --self-test` does (see spec/appendix-t.md §T.4).
     """
     weights = {}
     path = os.path.join(spec_dir, "rule_weights.csv")
@@ -280,6 +280,45 @@ def _blank(match, keep=""):
     return filler
 
 
+def _blank_indented_blocks(text):
+    """Blank markdown's indented code blocks, the same as a fenced one.
+
+    Markdown treats a line indented by four spaces as code, and PSTE-S1 exempts
+    code from every rule. Without this, an indented block is read as prose: a
+    diagram of box-drawing characters becomes one long sentence, and a command
+    inside the block reports a vocabulary finding against the author.
+
+    An indented line under a list item is that item's own content, not code, so
+    a list holds until a flush line that is not a list marker closes it. The
+    result keeps the length of the input, so every position still holds.
+    """
+    lines = text.splitlines(keepends=True)
+    out, in_list = [], False
+    for ln in lines:
+        bare = ln.lstrip()
+        indent = len(ln) - len(bare)
+
+        if not ln.strip():
+            # A blank line neither opens nor closes anything: an indented code
+            # block may hold one, and so may a list.
+            out.append(ln)
+            continue
+
+        if indent < 4:
+            # A flush line opens a list or closes the one that was open.
+            in_list = bool(LIST_RE.match(ln))
+            out.append(ln)
+            continue
+
+        # Indented by four or more: code, unless a list is open, in which case
+        # this is the item's continuation and stays prose.
+        if in_list:
+            out.append(ln)
+        else:
+            out.append("".join("\n" if c == "\n" else " " for c in ln))
+    return "".join(out)
+
+
 def strip_non_prose(text, keep_quotes=False):
     """Remove targets T2 and T3 before analysis, without moving anything.
 
@@ -291,6 +330,7 @@ def strip_non_prose(text, keep_quotes=False):
     """
     text = FRONT_MATTER_RE.sub(_blank, text)
     text = FENCE_RE.sub(_blank, text)
+    text = _blank_indented_blocks(text)
     if not keep_quotes:
         text = BLOCKQUOTE_RE.sub(_blank, text)
     text = URL_RE.sub(lambda m: _blank(m, "URL"), text)
@@ -327,9 +367,17 @@ IGNORE_RE = re.compile(r"pste-lint:\s*ignore")
 # A quoted span is a counter-example when the text immediately before it says "not"
 # (or "never"/"do not write"). Matching the quoted span itself — rather than starting
 # from the word `not` — avoids anchoring to a `not` that sits inside an earlier quote.
-QUOTED_SPAN_RE = re.compile(r"[\"“]([^\"”\n]{3,})[\"”]")
-NEGATION_BEFORE_RE = re.compile(r"(?:\bnot\b|\bnever\b|\binstead of\b)[\s,:]*$",
-                                re.IGNORECASE)
+# A counter-example wraps like any other prose, so the span must cross a line
+# break. It must not cross a BLANK line, because that would swallow a whole
+# paragraph when a quotation mark goes unclosed.
+QUOTED_SPAN_RE = re.compile(r"[\"“]([^\"”]{3,}?)[\"”]", re.DOTALL)
+# "Do not write X" puts a verb between the negation and the quote, so the
+# negation cannot be required to sit immediately before it. PSTE-S3 says a
+# quotation that does not conform must not be reported as a conformance
+# failure, and the standard's own counter-examples take that shape.
+NEGATION_BEFORE_RE = re.compile(
+    r"(?:\bnot\b|\bnever\b|\binstead of\b)(?:\s+\w+){0,2}[\s,:]*$",
+    re.IGNORECASE)
 
 
 def split_paragraphs(text):
@@ -349,6 +397,36 @@ def split_paragraphs(text):
 SENT_SPLIT_RE = re.compile(r"(?<=[.!?:])\s+")
 
 
+def _join_wrapped(text):
+    """Join a wrapped prose line to the line above. Returns (line, offset) pairs.
+
+    A line joins the one above it when both hold ordinary prose, so the offset of
+    every sentence still points into the original text. A blank line, a heading,
+    a table row and a list item all break the join, and so does a line that
+    follows one of those.
+    """
+    out = []
+    pos = 0
+    join_ok = False
+    for raw in text.splitlines(keepends=True):
+        start = pos
+        pos += len(raw)
+        bare = raw.strip()
+        own_line = (
+            not bare
+            or HEADING_RE.match(bare)
+            or TABLE_RE.match(bare)
+            or LIST_RE.match(bare)
+        )
+        if own_line or not join_ok or not out:
+            out.append([raw.rstrip("\n"), start])
+            join_ok = not own_line
+            continue
+        # Continuation: keep the gap one space wide so an offset stays usable.
+        out[-1][0] = out[-1][0].rstrip() + " " + bare
+    return [(line, start) for line, start in out]
+
+
 def split_sentences(text, mark_list_items=False, with_offsets=False):
     """Split into sentences. A list item is its own sentence (PSTE-N7 / rule 8.4).
 
@@ -356,11 +434,16 @@ def split_sentences(text, mark_list_items=False, with_offsets=False):
     label-and-definition list entry. with_offsets adds the character offset of each
     sentence in `text`, which the caller turns into a line and a column.
     """
+    # A hard-wrapped sentence is one sentence. Markdown prose wraps at about
+    # ninety characters, and reading the file line by line counted every wrap as
+    # a sentence break: a four sentence paragraph reported seven, and PSTE-D2
+    # failed a paragraph that obeyed it. A line that continues prose now joins
+    # the line above. A heading, a table row and a list item stay on their own
+    # line, because PSTE-N7 counts a list item as a sentence of its own.
+    lines = _join_wrapped(text)
+
     out = []
-    pos = 0
-    for line in text.splitlines(keepends=True):
-        line_start = pos
-        pos += len(line)
+    for line, line_start in lines:
         bare = line.strip()
         if not bare or HEADING_RE.match(bare) or TABLE_RE.match(bare):
             continue
@@ -708,7 +791,7 @@ ADJ_NO_ACTOR_RE = re.compile(
 )
 
 # Cached: the vocabulary check asks for the same few hundred phrases once per
-# word of prose, and compiling each one fresh cost 16 of the 17 seconds a level 3
+# word of prose, and compiling each one fresh cost 16 of the 17 seconds a full
 # check took on a 400 word document. The set of phrases is bounded by the word
 # list, so the cache cannot grow without bound.
 @functools.lru_cache(maxsize=None)
@@ -767,14 +850,14 @@ RULE_SEVERITY = {
 # corpus findings yet to measure.
 #
 # A finding from one of these rules is not wrong often enough to suppress, and not
-# right often enough to fail a document on its own. `check_text` still reports it
+# right often enough to count on its own. `check_text` still reports it
 # (a person reading the table wants every hit), but `add` marks it so a caller can
-# route it to the judge instead of the verdict. See evals/semantic_lint.py, which
-# asks the judge to confirm or reject each one before it counts.
+# route it to the judge instead of counting it directly. See evals/semantic_lint.py,
+# which asks the judge to confirm or reject each one before it counts.
 ARBITRATED_RULES = {"PSTE-N5", "PSTE-G7", "PSTE-G11", "PSTE-G12"}
 
 
-def check_text(text, level=2, vocab=None, kind="auto"):
+def check_text(text, vocab=None, kind="auto"):
     """Check prose. Returns a dict with findings, counts, and the word total."""
     vocab = vocab if vocab is not None else load_vocab()
     weights = load_weights()
@@ -797,10 +880,14 @@ def check_text(text, level=2, vocab=None, kind="auto"):
         # Fail loudly on an unknown rule ID: a missing severity is a bug in this
         # table, not something a finding should paper over with a silent default.
         assert rule in RULE_SEVERITY, f"no RFC-2119 severity for {rule!r}"
-        # Same stance as RULE_SEVERITY above: a rule this code can emit and the
-        # weight table does not cover is a bug in the table (spec/PSTE-1.md
-        # §15.5), not a finding that should carry a silent default weight.
-        assert rule in weights, f"no weight for {rule!r} (see spec/PSTE-1.md §15.5)"
+        # A rule the weight table covers badly is a bug in the table (a missing
+        # inline weight in spec/PSTE-1.md), so a PARTIAL table still fails loudly.
+        # An EMPTY table is a different thing: this file runs on its own, away
+        # from spec/, and a writer who copied one script should get findings
+        # rather than a crash. A finding then carries no weight, and a caller
+        # that wants one reads spec/rule_weights.csv.
+        assert not weights or rule in weights, \
+            f"no weight for {rule!r} (see spec/PSTE-1.md)"
         findings.append(
             {
                 "rule": rule,
@@ -818,9 +905,9 @@ def check_text(text, level=2, vocab=None, kind="auto"):
                 # must confirm first.
                 "arbitrated": rule in ARBITRATED_RULES,
                 # Normalized 0-1 consequence of one violation (spec/PSTE-1.md
-                # §15), from spec/rule_weights.csv. Lets a caller sum consequence
+                # §4), from spec/rule_weights.csv. Lets a caller sum consequence
                 # instead of counting every finding as one fault.
-                "weight": weights[rule],
+                "weight": weights.get(rule),
             }
         )
 
@@ -1058,40 +1145,39 @@ def check_text(text, level=2, vocab=None, kind="auto"):
                     f"write 'A writer MUST ...' instead of '{m.group(1)}'",
                     s, m.start())
 
-        # PSTE-V3 / vocabulary, Level 3 only. Report the longest match at a given
-        # position only: "going forward" must not also report "forward".
-        if level >= 3:
-            spans = []  # (start, end, rule, message)
-            for bad, good in vocab["instead_of"].items():
-                for m in _word_re(bad).finditer(s):
-                    if good:
-                        spans.append((m.start(), m.end(), "PSTE-V3",
-                                      f"'{bad}' is not approved; use '{good}'"))
-                    else:
-                        spans.append((m.start(), m.end(), "PSTE-L2",
-                                      f"'{bad}' carries no information; delete it"))
-            # Longest first, then keep a match only if it overlaps nothing kept.
-            spans.sort(key=lambda sp: (sp[0], -(sp[1] - sp[0])))
-            kept = []
-            for sp in sorted(spans, key=lambda sp: -(sp[1] - sp[0])):
-                if any(sp[0] < k[1] and k[0] < sp[1] for k in kept):
-                    continue
-                kept.append(sp)
-            for sp in sorted(kept):
-                # A marketing adjective already reported under PSTE-V9 is one
-                # problem, not two.
-                word = sp[3].split("'")[1] if "'" in sp[3] else ""
-                if word.lower() in vocab["marketing"]:
-                    continue
-                # A term from spec/terms.yaml names something in software that
-                # plain English cannot name accurately, and PSTE-V5 permits it.
-                # `flag` collapsed to `warn` and `drop` to `fall` on prose about
-                # a command line switch and a dropped table, which is wrong in
-                # every software sense of the word.
-                if (word.lower() in vocab["term_nouns"]
-                        or word.lower() in vocab["term_verbs"]):
-                    continue
-                add(sp[2], sp[3], s, sp[0])
+        # PSTE-V3 / vocabulary. Report the longest match at a given position
+        # only: "going forward" must not also report "forward".
+        spans = []  # (start, end, rule, message)
+        for bad, good in vocab["instead_of"].items():
+            for m in _word_re(bad).finditer(s):
+                if good:
+                    spans.append((m.start(), m.end(), "PSTE-V3",
+                                  f"'{bad}' is not approved; use '{good}'"))
+                else:
+                    spans.append((m.start(), m.end(), "PSTE-L2",
+                                  f"'{bad}' carries no information; delete it"))
+        # Longest first, then keep a match only if it overlaps nothing kept.
+        spans.sort(key=lambda sp: (sp[0], -(sp[1] - sp[0])))
+        kept = []
+        for sp in sorted(spans, key=lambda sp: -(sp[1] - sp[0])):
+            if any(sp[0] < k[1] and k[0] < sp[1] for k in kept):
+                continue
+            kept.append(sp)
+        for sp in sorted(kept):
+            # A marketing adjective already reported under PSTE-V9 is one
+            # problem, not two.
+            word = sp[3].split("'")[1] if "'" in sp[3] else ""
+            if word.lower() in vocab["marketing"]:
+                continue
+            # A term from spec/terms.yaml names something in software that
+            # plain English cannot name accurately, and PSTE-V5 permits it.
+            # `flag` collapsed to `warn` and `drop` to `fall` on prose about
+            # a command line switch and a dropped table, which is wrong in
+            # every software sense of the word.
+            if (word.lower() in vocab["term_nouns"]
+                    or word.lower() in vocab["term_verbs"]):
+                continue
+            add(sp[2], sp[3], s, sp[0])
 
         # PSTE-L1 stacked hedging
         hits = [h for h in vocab["hedges"] if _word_re(h).search(s)]
@@ -1192,20 +1278,22 @@ DISCLAIMER = (
 
 
 def format_table(path, result, verbose):
-    """A verdict, and when it fails, what failed.
+    """Every finding, its weight, and the weighted total. No verdict.
 
-    The output gives a verdict rather than a score. A count invites a reader to
-    treat it as a grade, to compare one document with another, and to quote it as
-    evidence that the text is good. It cannot support any of that: it counts the
-    rules that the text breaks, and nothing more.
+    spec/PSTE-1.md §4 lets a tool report a weighted measure. A count invites a reader
+    to treat it as a grade, to compare one document with another, and to
+    quote it as evidence the text is good. It cannot support any of that: it
+    lists the rules the text breaks, each one's weight, and nothing more.
 
-    A failure lists every offender, because a verdict with no detail helps nobody
-    fix anything. The detail is there to be acted on, not to be totalled.
+    A clean file still lists nothing, because a report with no detail helps
+    nobody fix anything. The detail is there to be acted on, not to be
+    totalled into a single word.
     """
     if not result["findings"]:
-        return f"{path}: PASS"
+        return f"{path}: no findings"
 
-    lines = [f"{path}: FAIL"]
+    weighted = round(sum(f["weight"] for f in result["findings"]), 1)
+    lines = [f"{path}: {len(result['findings'])} findings, weighted {weighted}"]
     # In file order, so a writer can work down the file rather than jump about.
     ordered = sorted(
         result["findings"],
@@ -1213,7 +1301,7 @@ def format_table(path, result, verbose):
     )
     for f in ordered:
         where = f"{path}:{f['line']}:{f['column']}" if f.get("line") else path
-        lines.append(f"  {where}: {f['rule']} {f['message']}")
+        lines.append(f"  {where}: {f['rule']} (weight {f['weight']}) {f['message']}")
         if verbose and f.get("excerpt"):
             lines.append(f"      {f['excerpt']}")
             caret = f.get("excerpt_offset")
@@ -1225,7 +1313,6 @@ def format_table(path, result, verbose):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="PSTE-1 conformance checker")
     ap.add_argument("files", nargs="*")
-    ap.add_argument("--level", type=int, default=2, choices=[1, 2, 3])
     ap.add_argument(
         "--json",
         action="store_true",
@@ -1259,7 +1346,7 @@ def main(argv=None):
         except OSError as exc:
             print(f"{path}: cannot read: {exc}", file=sys.stderr)
             continue
-        res = check_text(text, level=args.level, vocab=vocab)
+        res = check_text(text, vocab=vocab)
         results[path] = res
         if res["findings"]:
             failed += 1
@@ -1273,7 +1360,6 @@ def main(argv=None):
         print(
             json.dumps(
                 {
-                    "level": args.level,
                     "disclaimer": DISCLAIMER.replace("\n", " "),
                     "files": results,
                 },
@@ -1292,11 +1378,30 @@ def main(argv=None):
 
 def self_test():
     """Assert-based checks. Each case names the rule it must and must not raise."""
+
+    # This file runs on its own, away from spec/. A writer who copies one
+    # script gets findings, not a crash, and a finding then carries no weight.
+    # A PARTIAL table is still a bug in the table and still fails loudly.
+    _real = load_weights
+    try:
+        globals()["load_weights"] = lambda *a, **k: {}
+        _bare = check_text("The user should utilize the cache.")
+        assert _bare["findings"], "a copy of this file alone still reports"
+        assert _bare["findings"][0]["weight"] is None, _bare["findings"][0]
+        globals()["load_weights"] = lambda *a, **k: {"PSTE-A1": 1.0}
+        try:
+            check_text("The user should utilize the cache.")
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("a partial weight table must fail loudly")
+    finally:
+        globals()["load_weights"] = _real
     vocab = load_vocab()
 
-    def rules_for(text, level=2, kind="auto"):
+    def rules_for(text, kind="auto"):
         return set(
-            f["rule"] for f in check_text(text, level, vocab, kind)["findings"]
+            f["rule"] for f in check_text(text, vocab, kind)["findings"]
         )
 
     # Vocabulary loaded correctly.
@@ -1313,7 +1418,7 @@ def self_test():
     # even when another entry avoids it in a different sense.
     for w in sorted(vocab["approved"]):
         assert w not in vocab["instead_of"], f"{w} is both approved and routed away"
-    assert "PSTE-V3" not in rules_for("Call the function once.", level=3)
+    assert "PSTE-V3" not in rules_for("Call the function once.")
 
     # Every route must point at a word the standard defines: an approved word, or a
     # term verb from terms.yaml. Otherwise the checker tells a writer to use a word
@@ -1346,7 +1451,7 @@ def self_test():
                 ex = _unquote(st.split(":", 1)[1])
                 if not ex or ex == "null":
                     continue
-                if check_text(ex, 2, vocab)["findings"]:
+                if check_text(ex, vocab)["findings"]:
                     bad_examples.append(ex)
         assert not bad_examples, (
             f"{len(bad_examples)} word-list examples break the rules, "
@@ -1356,13 +1461,13 @@ def self_test():
     # A phrase match suppresses the single word inside it: "going forward" must not
     # also report "forward".
     msgs = [
-        f["message"] for f in check_text("Going forward, we plan the work.", 3, vocab)["findings"]
+        f["message"] for f in check_text("Going forward, we plan the work.", vocab)["findings"]
     ]
     assert any("going forward" in m for m in msgs), msgs
     assert not any("'forward'" in m for m in msgs), msgs
 
     # A marketing adjective is one finding, not two.
-    r = check_text("The parser is robust.", 3, vocab)["findings"]
+    r = check_text("The parser is robust.", vocab)["findings"]
     assert [f["rule"] for f in r] == ["PSTE-V9"], r
 
     # PSTE-N1 instruction length.
@@ -1482,13 +1587,12 @@ def self_test():
     assert "PSTE-L1" in rules_for("This might possibly break the cache.")
     assert "PSTE-L1" not in rules_for("This can break the cache.")
 
-    # PSTE-V3 vocabulary, level 3 only.
-    assert "PSTE-V3" in rules_for("Utilize the cache.", level=3)
-    assert "PSTE-V3" not in rules_for("Utilize the cache.", level=2)
-    assert "PSTE-V3" not in rules_for("Use the cache.", level=3)
+    # PSTE-V3 vocabulary.
+    assert "PSTE-V3" in rules_for("Utilize the cache.")
+    assert "PSTE-V3" not in rules_for("Use the cache.")
 
     # PSTE-L2 filler has no replacement, so it routes to L2 not V3.
-    assert "PSTE-L2" in rules_for("This basically works.", level=3)
+    assert "PSTE-L2" in rules_for("This basically works.")
 
     # PSTE-D2 paragraph length.
     para = " ".join(f"The step {i} runs." for i in range(8))
@@ -1576,18 +1680,36 @@ def self_test():
     assert rules_for('Write "the linter rejects the file".') == set()
 
     # The opt-out directive.
-    assert rules_for("This utilizes a robust approach. <!-- pste-lint: ignore -->",
-                     level=3) == set()
+    assert rules_for("This utilizes a robust approach. <!-- pste-lint: ignore -->"
+                     ) == set()
 
     # PSTE-S1 / S2: code and quotes are exempt.
     fenced = "```\nutilize(); // spin up, e.g. don't\n```\nUse the cache."
-    assert rules_for(fenced, level=3) == set(), "fenced code must be exempt"
+    assert rules_for(fenced) == set(), "fenced code must be exempt"
 
     inline = "Call `utilize_cache()` to start the worker."
-    assert "PSTE-V3" not in rules_for(inline, level=3), "inline code must be exempt"
+    assert "PSTE-V3" not in rules_for(inline), "inline code must be exempt"
 
     quoted = "> The file is rejected; it doesn't parse.\n\nI fixed the parser."
-    assert rules_for(quoted, level=3) == set(), "blockquotes must be exempt"
+    assert rules_for(quoted) == set(), "blockquotes must be exempt"
+
+    # An INDENTED code block is code too (PSTE-S1), and markdown says so. Before
+    # this was handled, a diagram of box-drawing characters read as one long
+    # sentence and a command inside the block reported a vocabulary finding.
+    indented = ("Two files per run:\n\n"
+                "    run.json      the record\n"
+                "         \u2502    \u2514\u2500\u2500 utilize the cache\n\n"
+                "Each file is independent.")
+    assert rules_for(indented) == set(), "an indented code block must be exempt"
+
+    # A continuation line of a list item is also indented, and it IS prose.
+    in_list = "Steps:\n\n- first item\n    utilize the cache here\n"
+    assert "PSTE-V3" in rules_for(in_list), \
+        "an indented list continuation is prose, not code"
+
+    # A block that follows a closed list is code again.
+    after_list = "Steps:\n\n- item one\n\nNow run it:\n\n    utilize the cache\n"
+    assert rules_for(after_list) == set(), "a block after a list is code"
 
     # Word count treats a code span as one word (PSTE-N7).
     assert count_words("Run `a-very-long-identifier-here` now.") == 3
@@ -1664,7 +1786,7 @@ def self_test():
         "A writer SHOULD write no more than six sentences.",
     ):
         assert [
-            f for f in check_text(bad, 2, vocab)["findings"] if f["rule"] == "PSTE-K1"
+            f for f in check_text(bad, vocab)["findings"] if f["rule"] == "PSTE-K1"
         ], bad
     for good in (
         "A writer MUST NOT write more than 20 words.",
@@ -1672,19 +1794,19 @@ def self_test():
         "A writer MUST use only these verb forms.",
     ):
         assert not [
-            f for f in check_text(good, 2, vocab)["findings"] if f["rule"] == "PSTE-K1"
+            f for f in check_text(good, vocab)["findings"] if f["rule"] == "PSTE-K1"
         ], good
 
     # PSTE-N5: a past participle at the START of a run is an adjective, and opens
     # a noun chain. The same word later is a verb, and ends one. Position is the
     # only thing that separates them without a part of speech tagger.
     assert [
-        f for f in check_text("the failed database connection retry", 2, vocab)["findings"]
+        f for f in check_text("the failed database connection retry", vocab)["findings"]
         if f["rule"] == "PSTE-N5"
     ], "an adjectival participle must not hide a chain"
     for verb in ("the file failed the check", "the parser used the cache"):
         assert not [
-            f for f in check_text(verb, 2, vocab)["findings"] if f["rule"] == "PSTE-N5"
+            f for f in check_text(verb, vocab)["findings"] if f["rule"] == "PSTE-N5"
         ], verb
 
     # PSTE-G11 and PSTE-G12: adjective count and order.
@@ -1694,20 +1816,20 @@ def self_test():
     # "backup" is a noun in "restore the backup" and an adjective in "the backup
     # file", so a rule that guessed would report findings against correct text.
     order = [
-        f["rule"] for f in check_text("the legacy small database", 2, vocab)["findings"]
+        f["rule"] for f in check_text("the legacy small database", vocab)["findings"]
     ]
     assert "PSTE-G12" in order, order
     assert "PSTE-G12" not in [
-        f["rule"] for f in check_text("the small legacy database", 2, vocab)["findings"]
+        f["rule"] for f in check_text("the small legacy database", vocab)["findings"]
     ]
 
-    many = check_text("a small round red plastic button", 2, vocab)["findings"]
+    many = check_text("a small round red plastic button", vocab)["findings"]
     assert "PSTE-G11" in [f["rule"] for f in many], many
 
     # Two adjectives are allowed when the order is right.
     assert not [
         f
-        for f in check_text("a new backup file", 2, vocab)["findings"]
+        for f in check_text("a new backup file", vocab)["findings"]
         if f["rule"] in ("PSTE-G11", "PSTE-G12")
     ]
 
@@ -1721,7 +1843,7 @@ def self_test():
     ):
         got = [
             f
-            for f in check_text(clean, 2, vocab)["findings"]
+            for f in check_text(clean, vocab)["findings"]
             if f["rule"] in ("PSTE-G11", "PSTE-G12")
         ]
         assert not got, (clean, got)
@@ -1729,7 +1851,7 @@ def self_test():
     # Two adjectives of one category have no order between them.
     assert not [
         f
-        for f in check_text("the current legacy system", 2, vocab)["findings"]
+        for f in check_text("the current legacy system", vocab)["findings"]
         if f["rule"] == "PSTE-G12"
     ]
 
@@ -1737,29 +1859,29 @@ def self_test():
     for rank in set(ADJECTIVE_ORDER.values()):
         assert rank in ADJECTIVE_CATEGORY, rank
 
-    r = check_text("The parser is robust.", 2, vocab)["findings"]
+    r = check_text("The parser is robust.", vocab)["findings"]
     assert r[0]["line"] == 1, r
     assert r[0]["column"] == 15, r  # "The parser is " is 14 characters
     assert "The parser is robust."[r[0]["column"] - 1 :].startswith("robust"), r
-    multi = check_text("First line here.\n\nThe parser is robust.", 2, vocab)
+    multi = check_text("First line here.\n\nThe parser is robust.", vocab)
     assert multi["findings"][0]["line"] == 3, multi["findings"]
 
-    # PSTE-C8: the report gives a verdict, never a score, and a failure names
-    # every offender so that a writer can correct it.
-    clean = check_text("The linter reads the file.", 2, vocab)
-    assert format_table("f.md", clean, False) == "f.md: PASS"
+    # spec/PSTE-1.md §4: the report gives findings and a weighted total, never
+    # a PASS/FAIL verdict, and every offender is named so a writer can fix it.
+    clean = check_text("The linter reads the file.", vocab)
+    assert format_table("f.md", clean, False) == "f.md: no findings"
 
     # An instruction, so PSTE-G1 applies: PSTE-G2 permits the passive in a
     # description, and this test is about the report and not about the voice.
     dirty = check_text(
-        "Check that the file is rejected; it doesn't parse.", 2, vocab,
+        "Check that the file is rejected; it doesn't parse.", vocab,
         kind="instruction",
     )
     out = format_table("f.md", dirty, False)
-    assert out.startswith("f.md: FAIL"), out
-    assert "PSTE-G1" in out and "PSTE-X1" in out, "a failure must name each offender"
-    for token in ("/100w", "findings", "score"):
-        assert token not in out, f"the report must not present a count: {token!r}"
+    assert out.startswith(f"f.md: {len(dirty['findings'])} findings, weighted "), out
+    assert "PSTE-G1" in out and "PSTE-X1" in out, "a report must name each offender"
+    for token in ("PASS", "FAIL", "/100w", "score"):
+        assert token not in out, f"the report must not present a verdict: {token!r}"
 
     # The disclaimer must name what a conformance result cannot support.
     for phrase in ("not quality", "readability"):
@@ -1769,7 +1891,7 @@ def self_test():
     assert "PSTE-S4" in rules_for("We are getUsering the record.")
     assert "PSTE-S4" in rules_for("The value was snake_cased before it was sent.")
     assert "PSTE-S4" not in rules_for("We call getUser to fetch the record.")
-    assert "PSTE-S4" not in rules_for("The `getUsering` call is fenced.", level=3)
+    assert "PSTE-S4" not in rules_for("The `getUsering` call is fenced.")
     # A plural-noun identifier is not an inflected verb. Cannot be told apart from
     # a real verb inflection without part-of-speech knowledge, so `s` alone is not
     # matched (see INFLECTION_RE).
@@ -1799,7 +1921,7 @@ def self_test():
     # pronouns are known.
     assert "PSTE-G10" in rules_for("Ask the user for his password.")
     assert "PSTE-G10" not in rules_for("Ask the user for their password.")
-    g10 = [f for f in check_text("Ask the user for his password.", 2, vocab)["findings"]
+    g10 = [f for f in check_text("Ask the user for his password.", vocab)["findings"]
           if f["rule"] == "PSTE-G10"]
     assert g10 and g10[0]["severity"] == "SHOULD", g10
 
@@ -1812,11 +1934,11 @@ def self_test():
     assert "PSTE-V7" not in rules_for("The build traveled through three stages.")
 
     # ARBITRATED FINDINGS. N5/G7/G11/G12 are marked so a caller can route them to
-    # the judge instead of a verdict; every other rule this checker can emit is
-    # countable and goes straight to a verdict.
-    arbitrated_hit = check_text("Perform an analysis of the log file.", 2, vocab)["findings"]
+    # the judge instead of counting them directly; every other rule this checker
+    # can emit is countable and goes straight into the weighted total.
+    arbitrated_hit = check_text("Perform an analysis of the log file.", vocab)["findings"]
     assert [f["arbitrated"] for f in arbitrated_hit if f["rule"] == "PSTE-G7"] == [True]
-    countable_hit = check_text("The build failed; the log shows why.", 2, vocab)["findings"]
+    countable_hit = check_text("The build failed; the log shows why.", vocab)["findings"]
     assert [f["arbitrated"] for f in countable_hit if f["rule"] == "PSTE-X1"] == [False]
     assert ARBITRATED_RULES == {"PSTE-N5", "PSTE-G7", "PSTE-G11", "PSTE-G12"}
     # Every ARBITRATED rule must have a severity, same as any other rule ID.
@@ -1827,7 +1949,7 @@ def self_test():
     # emits (PSTE-X5) each carry the right severity, and every rule ID the
     # checker can emit over the eval corpus resolves to one.
     sev_check = check_text(
-        "Check that the file is rejected — it does not parse.", 2, vocab,
+        "Check that the file is rejected — it does not parse.", vocab,
         kind="instruction",
     )["findings"]
     by_rule = {f["rule"]: f["severity"] for f in sev_check}
@@ -1841,46 +1963,44 @@ def self_test():
                 continue
             with open(os.path.join(_root, _fn), encoding="utf-8") as fh:
                 _text = fh.read()
-            for _f in check_text(_text, 2, vocab)["findings"]:
+            for _f in check_text(_text, vocab)["findings"]:
                 assert _f["rule"] in RULE_SEVERITY, f"unmapped rule: {_f['rule']}"
                 assert _f["severity"] in ("MUST", "SHOULD"), _f
-                # spec/PSTE-1.md §15. A missing weight is a bug in the table, the
+                # spec/PSTE-1.md §4. A missing weight is a bug in the table, the
                 # same way a missing severity is a bug in RULE_SEVERITY above.
                 assert isinstance(_f["weight"], float), _f
 
-    # spec/PSTE-1.md §15.6: the weight table and spec/rule_weights.csv MUST agree.
-    # This file stays dependency-free (see the AST check below), so it cannot
-    # import lib/build_appendix.py's table parser here. It re-reads the §15.5
-    # table with the same small regex instead, and compares rule and weight
-    # against the generated CSV, so a hand edit to one side without the other
-    # fails here instead of drifting silently.
-    _weight_row_re = re.compile(
-        r"^\|\s*(PSTE-[A-Z0-9.]+)\s*\|\s*([0-9.]+|N/A)\s*\|"
-    )
-    _table_weights = {}
-    _in_table = False
+    # spec/PSTE-1.md §4 and spec/rule_weights.csv MUST agree. This file stays
+    # dependency-free (see the AST check below), so it cannot import
+    # lib/build_appendix.py's parser here. It re-reads each rule's inline
+    # `*Weight: N.N.* reason...` annotation with the same small regex instead,
+    # and compares rule and weight against the generated CSV, so a hand edit to
+    # one side without the other fails here instead of drifting silently.
+    _rule_heading_re = re.compile(r"^\*\*(PSTE-[A-Z0-9.]+)\*\*:")
+    _weight_line_re = re.compile(r"^\*Weight:\s*([0-9.]+|N/A)\.\*")
+    _spec_weights = {}
+    _pending_rule = None
     with open(os.path.join(SPEC_DIR, "PSTE-1.md"), encoding="utf-8") as fh:
         for _line in fh:
             _stripped = _line.strip()
-            if _stripped == "### 15.5 The weight table":
-                _in_table = True
+            _h = _rule_heading_re.match(_stripped)
+            if _h:
+                _pending_rule = _h.group(1)
                 continue
-            if _in_table and _stripped.startswith("### "):
-                break
-            if not _in_table:
-                continue
-            _m = _weight_row_re.match(_stripped)
-            if _m:
-                _table_weights[_m.group(1)] = _m.group(2)
-    assert _table_weights, "§15.5 weight table not found in spec/PSTE-1.md"
+            if _pending_rule:
+                _w = _weight_line_re.match(_stripped)
+                if _w:
+                    _spec_weights[_pending_rule] = _w.group(1)
+                    _pending_rule = None
+    assert _spec_weights, "no inline rule weights found in spec/PSTE-1.md"
 
     _csv_weights_raw = {}
     with open(os.path.join(SPEC_DIR, "rule_weights.csv"),
               newline="", encoding="utf-8") as fh:
         for _row in csv.DictReader(fh):
             _csv_weights_raw[_row["rule"]] = _row["weight"]
-    assert _table_weights == _csv_weights_raw, (
-        "spec/PSTE-1.md §15.5 and spec/rule_weights.csv disagree; "
+    assert _spec_weights == _csv_weights_raw, (
+        "spec/PSTE-1.md's inline rule weights and spec/rule_weights.csv disagree; "
         "run: python3 lib/build_appendix.py"
     )
 

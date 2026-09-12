@@ -1,22 +1,23 @@
 /**
  * Shared state for the PSTE hooks.
  *
- * The active level lives in a file rather than in the conversation, so that it
- * survives context compaction and new sessions. Every filesystem operation here
- * fails silently: a hook must never block session start (PSTE plan section 9).
+ * Whether PSTE is active lives in a file rather than in the conversation, so
+ * that it survives context compaction and new sessions. Every filesystem
+ * operation here fails silently: a hook must never block session start
+ * (PSTE plan section 9).
  */
 
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const VALID_LEVELS = ["off", "lite", "pste", "strict"];
+const VALID_LEVELS = ["off", "pste"];
 const DEFAULT_LEVEL = "pste";
 const FLAG_NAME = ".pste-active";
 const MAX_FLAG_BYTES = 64;
 
-/** Artifact types that select level 3 automatically (PSTE-C3). */
-const STRICT_ARTIFACTS = [
+/** Artifact types that turn PSTE on automatically. */
+const AUTO_ON_ARTIFACTS = [
   "release note",
   "release notes",
   "changelog",
@@ -128,18 +129,18 @@ function readRepoConfig(startDir) {
 }
 
 /**
- * Decide whether a prompt asks for an artifact that PSTE-C3 says to write at
- * level 3. A repository can turn this off, or add its own triggers, through
- * .pste.json: {"autoStrict": false} or {"strictArtifacts": ["design doc"]}.
+ * Decide whether a prompt asks for an artifact type that turns PSTE on by
+ * itself. A repository can turn this off, or add its own triggers, through
+ * .pste.json: {"autoOn": false} or {"autoOnArtifacts": ["design doc"]}.
  */
-function wantsStrict(promptText, cwd) {
+function wantsOn(promptText, cwd) {
   if (!promptText) return false;
   const cfg = readRepoConfig(cwd || process.cwd()) || {};
-  if (cfg.autoStrict === false) return false;
+  if (cfg.autoOn === false) return false;
 
-  const triggers = Array.isArray(cfg.strictArtifacts)
-    ? STRICT_ARTIFACTS.concat(cfg.strictArtifacts)
-    : STRICT_ARTIFACTS;
+  const triggers = Array.isArray(cfg.autoOnArtifacts)
+    ? AUTO_ON_ARTIFACTS.concat(cfg.autoOnArtifacts)
+    : AUTO_ON_ARTIFACTS;
 
   const text = promptText.toLowerCase();
   return triggers.some((t) => text.includes(t.toLowerCase()));
@@ -148,12 +149,12 @@ function wantsStrict(promptText, cwd) {
 module.exports = {
   VALID_LEVELS,
   DEFAULT_LEVEL,
-  STRICT_ARTIFACTS,
+  AUTO_ON_ARTIFACTS,
   configDir,
   flagPath,
   readLevel,
   writeLevel,
   defaultLevel,
   readRepoConfig,
-  wantsStrict,
+  wantsOn,
 };

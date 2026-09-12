@@ -2,14 +2,14 @@
 #
 #   pip install pre-commit && pre-commit install
 #
-# Level 2 is the default. The specification and the skill prompt are excluded
-# because they quote text that breaks the rules in order to teach the rules.
+# The specification and the skill prompt are excluded because they quote text
+# that breaks the rules in order to teach the rules.
 repos:
   - repo: local
     hooks:
       - id: pste-lint
         name: PSTE conformance
-        entry: python3 evals/pste_lint.py --level 2 --no-disclaimer
+        entry: python3 evals/pste_lint.py --no-disclaimer
         language: system
         types: [markdown]
         # Excluded because they quote text that breaks the rules in order to teach

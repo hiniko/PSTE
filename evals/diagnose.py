@@ -4,15 +4,14 @@
     python3 evals/diagnose.py
     python3 evals/diagnose.py --arm control     # what the plain ask leaves behind
     python3 evals/diagnose.py --rule PSTE-G1    # every instance of one rule
-    python3 evals/diagnose.py --level 3
-    python3 evals/diagnose.py --corpus --level 3      # diagnose the CHECKER, not the skill
+    python3 evals/diagnose.py --corpus                # diagnose the CHECKER, not the skill
     python3 evals/diagnose.py --corpus --words        # which words fire the vocabulary rules
 
 WHAT THIS IS FOR
 
 `measure.py` answers "did the arm conform?" and the answer is usually no, because
-one finding fails a document. That verdict is correct and useless for improving
-anything: it cannot say WHICH rule the skill fails to teach.
+one finding is enough to mark a document unclean. That answer is correct and useless
+for improving anything: it cannot say WHICH rule the skill fails to teach.
 
 This ranks the rules that survive a PSTE pass. The rule at the top of the list is
 the one the skill prompt explains worst, and it is where the next edit belongs.
@@ -27,9 +26,9 @@ artefact. The frequency table can.
 
 READ IT AS A WORK LIST, NOT AS A SCORE
 
-PSTE-1 §5.2 says a conformance result is not a measure of quality, and that holds
-here too. These counts say where the skill is weak. They do not say the text is
-good, or bad, or better than anything else.
+A conformance result is not a measure of quality, and that holds here too. These
+counts say where the skill is weak. They do not say the text is good, or bad, or
+better than anything else.
 
 A NUMBER THAT FALLS BECAUSE THE SKILL IMPROVED IS GOOD. A NUMBER THAT FALLS
 BECAUSE SOMEBODY RELAXED A RULE IS A LIE. Change the skill, never the standard, in
@@ -57,7 +56,7 @@ DISCLAIMER = (
 )
 
 
-def collect(snapshot, arm, level):
+def collect(snapshot, arm):
     """Every finding for one arm, with the document it came from."""
     vocab = pste_lint.load_vocab()
     findings = []
@@ -78,7 +77,7 @@ def collect(snapshot, arm, level):
         for index, text in enumerate(every):
             if not text:
                 continue
-            result = pste_lint.check_text(text, level=level, vocab=vocab)
+            result = pste_lint.check_text(text, vocab=vocab)
             counts.append(len(result["findings"]))
             for finding in result["findings"]:
                 findings.append({**finding, "document": pid, "pass": index + 1})
@@ -93,7 +92,7 @@ def collect(snapshot, arm, level):
     return findings, per_document
 
 
-def collect_corpus(level, manifest=corpus.MANIFEST, directory=corpus.CORPUS_DIR):
+def collect_corpus(manifest=corpus.MANIFEST, directory=corpus.CORPUS_DIR):
     """Every finding against the corpus SOURCE documents, with no eval result.
 
     `collect` diagnoses a rewrite. This diagnoses the CHECKER: it runs
@@ -108,7 +107,7 @@ def collect_corpus(level, manifest=corpus.MANIFEST, directory=corpus.CORPUS_DIR)
     for doc in corpus.load(manifest):
         with open(corpus.path_of(doc, directory), encoding="utf-8") as fh:
             text = fh.read()
-        result = pste_lint.check_text(text, level=level, vocab=vocab)
+        result = pste_lint.check_text(text, vocab=vocab)
         for finding in result["findings"]:
             findings.append({**finding, "document": doc["id"], "pass": 1})
         per_document[doc["id"]] = {
@@ -150,7 +149,7 @@ def word_table(findings):
     return rows
 
 
-def compare(snapshot, level):
+def compare(snapshot):
     """How each arm scored on each document, so a reader sees the movement."""
     vocab = pste_lint.load_vocab()
     rows = []
@@ -163,7 +162,7 @@ def compare(snapshot, level):
                 continue
             every = repeats.get(arm) or [text]
             counts = [
-                len(pste_lint.check_text(t, level=level, vocab=vocab)["findings"])
+                len(pste_lint.check_text(t, vocab=vocab)["findings"])
                 for t in every
                 if t
             ]
@@ -193,7 +192,6 @@ def main():
         help="a frequency table for the vocabulary rules (PSTE-V3, PSTE-L2)",
     )
     ap.add_argument("--arm", default="pste")
-    ap.add_argument("--level", type=int, default=2, choices=[1, 2, 3])
     ap.add_argument("--rule", default=None, help="show every instance of one rule")
     ap.add_argument("--limit", type=int, default=6, help="examples per rule")
     ap.add_argument("--json", action="store_true")
@@ -205,7 +203,7 @@ def main():
 
     if args.corpus:
         path, snapshot = None, None
-        findings, per_document = collect_corpus(args.level)
+        findings, per_document = collect_corpus()
     else:
         path = provenance.resolve(args.snapshot)
         if not path or not os.path.exists(path):
@@ -213,10 +211,10 @@ def main():
             return 2
         with open(path, encoding="utf-8") as fh:
             snapshot = json.load(fh)
-        findings, per_document = collect(snapshot, args.arm, args.level)
+        findings, per_document = collect(snapshot, args.arm)
 
     by_rule = collections.Counter(f["rule"] for f in findings)
-    # spec/PSTE-1.md §15: the consequence of a finding, not just its count. A
+    # spec/PSTE-1.md §4: the consequence of a finding, not just its count. A
     # weight is already on every finding pste_lint.check_text returns (see
     # pste_lint.load_weights), so this sums what is already there rather than
     # looking anything up again.
@@ -231,7 +229,6 @@ def main():
                 {
                     "result": "corpus" if args.corpus else os.path.basename(path),
                     "arm": "corpus" if args.corpus else args.arm,
-                    "level": args.level,
                     "by_rule": dict(by_rule),
                     "weighted_total": round(weighted_total, 2),
                     "weighted_by_rule": {
@@ -261,7 +258,7 @@ def main():
         return 0
 
     if args.corpus:
-        print(f"PSTE diagnosis, corpus source documents, level {args.level}\n")
+        print("PSTE diagnosis, corpus source documents\n")
         header = f"{'document':<36}{'findings':>9}{'words':>9}"
         print(header)
         print("-" * len(header))
@@ -271,20 +268,20 @@ def main():
             total += entry["findings"]
         print("-" * len(header))
         print(f"{'TOTAL':<36}{total:>9}")
-        print(f"\nWeighted total (spec/PSTE-1.md §15): {weighted_total:.1f} "
+        print(f"\nWeighted total (spec/PSTE-1.md §4): {weighted_total:.1f} "
               f"of {total} findings counted at full weight.")
 
         conforming = sum(1 for e in per_document.values() if e["findings"] == 0)
         print(f"\n{conforming}/{len(per_document)} documents conform.")
         if conforming < len(per_document):
-            print("A document fails on one finding, so read the work list, not the count.")
+            print("One finding marks a document unclean, so read the work list, not the count.")
     else:
-        print(f"PSTE diagnosis, arm '{args.arm}', level {args.level}")
+        print(f"PSTE diagnosis, arm '{args.arm}'")
         print(f"{provenance.describe_result(snapshot, path)}\n")
 
         # The movement between arms. This is what says whether the skill did
-        # anything, and a verdict alone cannot show it.
-        rows = compare(snapshot, args.level)
+        # anything, and a clean/unclean split alone cannot show it.
+        rows = compare(snapshot)
         arms = [a for a in ("source", "control", "pste", "pste_fixed") if a in rows[0]]
         header = f"{'document':<36}" + "".join(f"{a:>9}" for a in arms)
         print(header)
@@ -298,14 +295,14 @@ def main():
             print(line)
         print("-" * len(header))
         print(f"{'TOTAL':<36}" + "".join(f"{totals[a]:>9}" for a in arms))
-        print(f"\nWeighted total for arm '{args.arm}' (spec/PSTE-1.md §15): "
+        print(f"\nWeighted total for arm '{args.arm}' (spec/PSTE-1.md §4): "
               f"{weighted_total:.1f} of {totals.get(args.arm, 0)} findings "
               f"counted at full weight.")
 
         conforming = sum(1 for r in rows if r.get(args.arm) == 0)
         print(f"\n{conforming}/{len(rows)} documents conform in arm '{args.arm}'.")
         if conforming < len(rows):
-            print("A document fails on one finding, so read the work list, not the count.")
+            print("One finding marks a document unclean, so read the work list, not the count.")
 
     arm_label = "corpus" if args.corpus else args.arm
     print(f"\nWhat the '{arm_label}' arm still breaks, worst first by raw count:\n")
@@ -403,7 +400,7 @@ def self_test():
         },
     }
 
-    findings, per_document = collect(snapshot, "pste", 2)
+    findings, per_document = collect(snapshot, "pste")
     assert "d1" in per_document, per_document
     assert per_document["d1"]["words"] > 0
 
@@ -413,12 +410,12 @@ def self_test():
         assert finding["document"] == "d1", finding
 
     # The source must be scored too. A rewrite means nothing without the before.
-    source_findings, _ = collect(snapshot, "source", 2)
+    source_findings, _ = collect(snapshot, "source")
     assert len(source_findings) > len(findings), (
         "the source should break more rules than the rewrite in this fixture"
     )
 
-    # spec/PSTE-1.md §15: every finding pste_lint.check_text returns already
+    # spec/PSTE-1.md §4: every finding pste_lint.check_text returns already
     # carries a weight, so the weighted total is a straight sum and never looks
     # a rule up twice.
     for finding in source_findings:
@@ -431,7 +428,7 @@ def self_test():
         weighted_total, len(source_findings)
     )
 
-    rows = compare(snapshot, 2)
+    rows = compare(snapshot)
     assert rows[0]["document"] == "d1", rows
     for arm in ("source", "control", "pste"):
         assert arm in rows[0], (arm, rows[0])
@@ -439,7 +436,7 @@ def self_test():
 
     # An arm that is absent must not raise.
     empty = {"results": {"d": {"source": "Set the flag.", "outputs": {}}}}
-    got, _ = collect(empty, "pste", 2)
+    got, _ = collect(empty, "pste")
     assert got == [], got
 
     # --corpus: same finding and per_document shape as --snapshot, built from
@@ -468,7 +465,7 @@ documents:
         with open(man_path, "w", encoding="utf-8") as fh:
             fh.write(manifest.replace("PLACEHOLDER", corpus.sha256_of(doc_path)))
 
-        corpus_findings, corpus_per_document = collect_corpus(2, man_path, tmp)
+        corpus_findings, corpus_per_document = collect_corpus(man_path, tmp)
 
         assert "fixture-doc" in corpus_per_document, corpus_per_document
         assert corpus_per_document["fixture-doc"]["words"] > 0

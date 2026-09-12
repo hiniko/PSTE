@@ -2,18 +2,17 @@
 """Score the eval snapshot with the PSTE checker. Reads offline, calls no API.
 
     python3 evals/measure.py
-    python3 evals/measure.py --level 3
     python3 evals/measure.py --json
     python3 evals/measure.py --counts     # finer detail, for finding a regression
 
-Reports the share of outputs in each arm that conform at a given level.
+Reports the share of outputs in each arm that conform.
 
 WHY A SHARE AND NOT A SCORE
 
-§5.2 of the spec says a conformance result is not a measure of quality, even here
-where the harness is allowed to report one. A number invites a reader to treat it
-as a grade, to compare one document with another, and to quote it as proof that
-the text is good. A conformance count supports none of that.
+A conformance result is not a measure of quality, even here where the harness is
+allowed to report one. A number invites a reader to treat it as a grade, to
+compare one document with another, and to quote it as proof that the text is
+good. A conformance count supports none of that.
 
 What this answers: did the arm produce text that follows the rules?
 What this cannot answer: is that text easier to read?
@@ -49,13 +48,13 @@ import pste_lint  # noqa: E402
 ARM_ORDER = ("source", "baseline", "control", "pste", "pste_fixed")
 
 DISCLAIMER = (
-    "PSTE-1 §5.2: a conformance result is not a measure of quality.\n"
+    "A conformance result is not a measure of quality.\n"
     "This table shows whether each arm followed the rules. Nobody has yet tested\n"
     "whether the result helps a reader. See evals/FUTURE-WORK.md."
 )
 
 
-def score(snapshot, level):
+def score(snapshot):
     """Check every output. Returns the pass counts, and the raw detail."""
     vocab = pste_lint.load_vocab()
     passes, findings, words = {}, {}, {}
@@ -77,7 +76,7 @@ def score(snapshot, level):
             for text in every:
                 if not text:
                     continue
-                res = pste_lint.check_text(text, level=level, vocab=vocab)
+                res = pste_lint.check_text(text, vocab=vocab)
                 passes.setdefault(arm, {"passed": 0, "total": 0})
                 passes[arm]["total"] += 1
                 if not res["findings"]:
@@ -108,7 +107,6 @@ def main():
     ap.add_argument(
         "--snapshot", default=None, help="a result file. Defaults to the newest."
     )
-    ap.add_argument("--level", type=int, default=2, choices=[1, 2, 3])
     ap.add_argument("--json", action="store_true")
     ap.add_argument(
         "--counts",
@@ -126,11 +124,10 @@ def main():
     with open(path, encoding="utf-8") as fh:
         snapshot = json.load(fh)
 
-    passes, findings, words = score(snapshot, args.level)
+    passes, findings, words = score(snapshot)
     word_stats = {arm: summarize(v) for arm, v in words.items() if v}
 
     report = {
-        "level": args.level,
         "result": os.path.basename(path),
         "git": snapshot.get("git"),
         "disclaimer": DISCLAIMER.replace("\n", " "),
@@ -148,7 +145,7 @@ def main():
 
     count = snapshot.get("document_count") or snapshot.get("prompt_count", 0)
     unit = "documents" if snapshot.get("document_count") else "prompts"
-    print(f"PSTE eval, level {args.level}, {count} {unit}")
+    print(f"PSTE eval, {count} {unit}")
     print(f"{provenance.describe_result(snapshot, path)}\n")
     print(f"{'arm':<10} {'conforming':>12} {'median words':>14}")
     for arm in ARM_ORDER:
@@ -159,7 +156,7 @@ def main():
         w = word_stats.get(arm, {}).get("median", 0)
         print(f"{arm:<10} {share:>12} {w:>14}")
 
-    print("\nShare of outputs in each arm that follow the rules at this level.")
+    print("\nShare of outputs in each arm that follow the rules.")
 
     # The word column is the guard against a false win. PSTE-A1 forbids dropping a
     # fact to satisfy a rule, and an arm that conforms by saying less has broken

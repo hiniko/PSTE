@@ -1,20 +1,17 @@
 ---
-description: Set the PSTE writing level (lite, pste, strict, off)
-argument-hint: "[lite|pste|strict|off]"
+description: Turn PSTE writing on or off
+argument-hint: "[on|off]"
 ---
 
-Set the PSTE level to $ARGUMENTS. If the user gave no argument, use `pste`.
+Set PSTE to $ARGUMENTS. If the user gave no argument, use `on`.
 
 Write your own prose in Programming Simplified Technical English from now on.
 
-- `lite` — cut filler, hedging, and marketing adjectives. Active voice with a named
-  actor. Say the result first. Keep normal sentence length and free vocabulary.
-- `pste` — the default. Everything in `lite`, plus simple tenses only, one word for one
-  meaning, an instruction under 20 words, a description under 25, no contractions, no
-  semicolons, and multi-word nouns of three words at most.
-- `strict` — everything in `pste`, plus the approved word list, one instruction per
-  sentence, a vertical list for three or more steps, and a warning that leads with the
-  command or the condition.
+- `on` — the default. State the result first, in the active voice, with a named actor.
+  Use one word for one meaning from the approved word list, and simple tenses only. Keep
+  an instruction under 20 words and a description under 25. Do not use contractions or
+  semicolons. Write one instruction per sentence, and use a vertical list for three or
+  more steps. A warning leads with the command or the condition.
 - `off` — write normal prose.
 
 These rules govern the prose you write. Reproduce code, commands, paths, identifiers,

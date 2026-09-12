@@ -6,6 +6,12 @@ enforces it.**
 Status: BUILT. Version 0.1.0, 2026-08-02.
 Spike: complete. Phases 1-8 done, except the eval RUN (harness exists, no snapshot).
 
+**Superseded.** This plan describes the original three-level design (§6, §13's
+"Level 3 auto-selection"). A later pass removed conformance levels: PSTE now has one
+level, where every rule applies and the vocabulary rules are MUST. See
+`spec/RENUMBER.md` for the section renumbering this caused in the specification. This
+file is kept as the historical record of the original design, not updated to match.
+
 Open questions in section 13 are answered. Decisions taken:
 - Name PSTE confirmed.
 - Public repo, with SOURCES.md. ASD-STE100 is framed as INSPIRATION, never a source.

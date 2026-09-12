@@ -2,7 +2,10 @@
   "name": "pste",
   "version": "0.1.0",
   "description": "Programming Simplified Technical English. Writes user-facing prose in a controlled English that is easier to read and easier to share.",
-  "author": "Sherman Rose",
+  "author": {
+    "name": "Sherman Rose",
+    "url": "https://github.com/hiniko"
+  },
   "license": "MIT",
   "homepage": "https://github.com/hiniko/PSTE",
   "keywords": [

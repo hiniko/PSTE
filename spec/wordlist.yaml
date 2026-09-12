@@ -12,7 +12,7 @@
 # INVARIANTS, enforced by `python3 evals/pste_lint.py --self-test`:
 #   1. Every `instead_of` target is an approved word here, or a term verb in
 #      terms.yaml. A route to a banned word tells the writer to break the rules.
-#   2. Every `example` passes the checker at level 2.
+#   2. Every `example` passes the checker.
 #   3. No word is both approved and routed away. The checker has no part-of-speech
 #      tagger, so it drops such a route and defers to the approved sense.
 
@@ -22,7 +22,7 @@ meta:
   note: >
     Spike vocabulary. Covers the clusters that cause the most rotation in software
     writing. Not yet the full approved list; a word absent from this file is not
-    thereby forbidden at Level 3 until the list is complete.
+    thereby forbidden until the list is complete.
 
 words:
 
@@ -51,7 +51,7 @@ words:
     meaning: To run a procedure that shows whether something behaves correctly.
     forms: [test, tests, tested]
     instead_of: [exercise, prove out, sanity-check]
-    example: "Test the parser against the sample input."
+    example: "Test the parser against the sample file."
 
   # ---- Beginning and ending ---------------------------------------------------
   - word: start
@@ -77,7 +77,7 @@ words:
     meaning: To come to a finish.
     forms: [end, ends, ended]
     instead_of: [conclude, finalize, wrap up]
-    example: "The job ends when the queue is empty."
+    example: "The process ends when the queue is empty."
 
   # ---- Use, need, help --------------------------------------------------------
   - word: use
@@ -85,7 +85,7 @@ words:
     meaning: To employ something for a purpose.
     forms: [use, uses, used]
     instead_of: [utilize, leverage, employ, harness, make use of]
-    example: "Use the cache to lower the number of requests."
+    example: "Use the cache to reduce the number of requests."
     counter_example: "Leverage the caching layer to reduce request volume."
 
   - word: need
@@ -317,7 +317,7 @@ words:
     pos: adjective
     meaning: A large number of.
     instead_of: [numerous, myriad, a plethora of, a multitude of, countless]
-    example: "The log contains many duplicate entries."
+    example: "The log contains many copies of the same line."
 
   - word: some
     pos: adjective
@@ -342,7 +342,7 @@ words:
     pos: noun
     meaning: A condition in which a program fails to do what it is designed to do.
     instead_of: [problem, anomaly, incident, hiccup]
-    example: "The error occurs when the input is empty."
+    example: "The error occurs when the file is empty."
     note: >
       `issue` is not collapsed. A tracker issue and issuing a certificate are both
       ordinary software senses, and neither one is an error.
@@ -687,7 +687,7 @@ words:
     pos: adverb
     meaning: Many times, at short intervals.
     instead_of: [frequently, regularly, on a regular basis]
-    example: "The job runs often, once every five minutes."
+    example: "The process runs often, once every five minutes."
 
   - word: together
     pos: adverb
@@ -728,7 +728,7 @@ words:
     meaning: To have information in mind as a fact.
     forms: [know, knows, knew, known]
     instead_of: [be aware of, be cognizant of]
-    example: "The scheduler knows the next run time for each job."
+    example: "The scheduler knows the next run time per process."
 
   - word: mean
     pos: verb
@@ -866,7 +866,7 @@ words:
     meaning: To give information to someone, in words.
     forms: [tell, tells, told]
     instead_of: [inform, notify, apprise]
-    example: "The log tells the reader which worker handled the job."
+    example: "The log tells the reader which worker handled the process."
     note: "`notify` stays as a term verb for a system notification."
 
   - word: wait
@@ -930,7 +930,7 @@ words:
     pos: noun
     meaning: A position where something is or where something happens.
     instead_of: [location, spot, site]
-    example: "Store the key in a safe place."
+    example: "Store the certificate in a safe place."
     note: "`location` stays as a term noun for a file system path or a geographic region."
 
   - word: point
@@ -959,7 +959,7 @@ words:
     pos: noun
     meaning: One stored unit of data with named fields.
     instead_of: [entry, row, tuple]
-    example: "The database holds one record for each user."
+    example: "The database holds one record per user."
     note: "`row` stays as a term noun for a literal table row."
 
   - word: request
@@ -976,7 +976,7 @@ words:
     pos: noun
     meaning: A message that a system sends back after a request.
     instead_of: [reply, answer, return value]
-    example: "The response includes a status code and a body."
+    example: "The response includes a state code and a body."
 
   - word: rule
     pos: noun
@@ -1018,7 +1018,7 @@ words:
     pos: noun
     meaning: The condition of something at a stated time.
     instead_of: [status, condition]
-    example: "The state of the job changes to complete."
+    example: "The state of the process changes to complete."
     note: >
       `mode` is not collapsed. Strict mode and repokey mode name a configuration a
       program runs in, which is not the state it is currently in.
@@ -1165,7 +1165,7 @@ words:
     pos: adjective
     meaning: After the expected or the required time.
     instead_of: [overdue, tardy, delayed]
-    example: "The report is late when the job runs past midnight."
+    example: "The report is late when the process runs past midnight."
 
   - word: likely
     pos: adjective
@@ -1290,7 +1290,7 @@ words:
     pos: preposition
     meaning: Used to name an exact point in place or in time.
     instead_of: [at the point of, at the location of]
-    example: "The job runs at midnight every day."
+    example: "The process runs at midnight every day."
 
   - word: between
     pos: preposition
@@ -1394,7 +1394,7 @@ words:
     meaning: To be the same as, or to correspond to, a stated pattern or value.
     forms: [match, matches, matched]
     instead_of: [correspond to, align with, conform to]
-    example: "The regular expression matches every valid email address."
+    example: "The normal expression matches every valid email address."
 
   - word: create
     pos: verb
@@ -1425,7 +1425,7 @@ words:
     meaning: To change something to its newest or its correct form.
     forms: [update, updates, updated]
     instead_of: [refresh, sync, revise]
-    example: "The job updates the record with the latest price."
+    example: "The process updates the record with the latest price."
     note: "`sync` stays as a term verb for data synchronization between two systems."
 
   - word: join
@@ -1477,7 +1477,7 @@ words:
     meaning: To make something happen, in the sense of an error or an event.
     forms: [raise, raises, raised]
     instead_of: [throw, fire, emit]
-    example: "The function raises an error when the input is empty."
+    example: "The function raises an error when the file is empty."
     note: "`throw` stays as a literal keyword in languages that use it."
 
   - word: handle
@@ -1617,13 +1617,13 @@ words:
     pos: noun
     meaning: A stated position on a scale of amount or of importance.
     instead_of: [tier, grade, degree]
-    example: "The log records each entry at the warning level."
+    example: "The log records each access at the warning level."
 
   - word: pattern
     pos: noun
     meaning: A form that repeats or that a rule describes.
     instead_of: [motif, template, model]
-    example: "The regular expression describes a pattern for a phone number."
+    example: "The normal expression describes a pattern for a phone number."
     note: "`template` stays as a term noun for a literal file or a code template."
 
   - word: cost
@@ -1680,7 +1680,7 @@ words:
     pos: adjective
     meaning: Not happening often.
     instead_of: [uncommon, infrequent, scarce]
-    example: "A duplicate key is a rare event in this table."
+    example: "A copy of the key is a rare event in this table."
 
   - word: strong
     pos: adjective
@@ -1794,7 +1794,7 @@ words:
     pos: adverb
     meaning: In a short time from now.
     instead_of: [shortly, in the near future, before long]
-    example: "The job runs soon after the file arrives."
+    example: "The process runs soon after the file arrives."
 
   - word: nearby
     pos: adverb
@@ -1813,7 +1813,7 @@ words:
     pos: preposition
     meaning: Above, across, or more than a stated amount.
     instead_of: [in excess of, above and beyond]
-    example: "The job fails when the file is over one gigabyte."
+    example: "The process fails when the file is over one gigabyte."
 
   - word: against
     pos: preposition

@@ -2,7 +2,6 @@
 """Build an HTML page that shows an eval result to a person.
 
     python3 evals/report.py                      # the newest result
-    python3 evals/report.py --level 3
     python3 evals/report.py --open               # write it, then open it
 
 Pick a document from the list. The committed source and each rewrite appear side by
@@ -14,26 +13,27 @@ all the same way.
 
 WHAT THIS PAGE SHOWS AND WHAT IT DOES NOT
 
-Each arm shows PASS, or FAIL with every offender listed. This page is the evaluation
-harness, and `pste_lint.py` is eval tooling now, not a tool this project distributes
-to a writer. PSTE-1 §5.2 lets a harness report a count, a rate, or a percentage,
-because its reader is a maintainer comparing a change across a corpus.
+Each arm shows its weighted cost and its clean-sentence rate, with every offender
+listed. This page is the evaluation harness, and `pste_lint.py` is eval tooling now,
+not a tool this project distributes to a writer. PSTE-1 §4 lets a harness report a
+weighted measure, a rate, or a percentage, because its reader is a maintainer
+comparing a change across a corpus.
 
 The word count beside each arm is not a score either. It is the guard that rule
 PSTE-A1 needs: an arm that conforms by saying less has dropped a fact, and the short
 column makes that visible.
 
-PSTE-C6 makes fact loss a precondition of PASS, not a finding among the others: a
-rewrite that drops a number, a unit, a negation, or an obligation FAILS regardless of
+PSTE-A1 (§5.5, weight 1.0) states that accuracy defeats every other rule: a rewrite
+that drops a number, a unit, a negation, or an obligation has failed regardless of
 how clean its conformance findings are. `faithfulness.py` computes this per arm
 against the committed source, and the page marks it apart from the conformance
-findings so a clean-but-lossy document does not read the same as a plain pass. Read
+findings so a clean-but-lossy document does not read the same as a clean one. Read
 `faithfulness.py`'s own docstring for what it can and cannot catch: it finds DROPPED
-tokens, not changed meaning, so a passing fact-loss check is not proof the rewrite is
+tokens, not changed meaning, so a clean fact-loss check is not proof the rewrite is
 faithful.
 
 This file only reads. It calls no API, and it writes no number back into the
-snapshot. Every verdict is computed from `evals/pste_lint.py` when the page is
+snapshot. Every finding is computed from `evals/pste_lint.py` when the page is
 built, so the snapshot stays raw text and the standard stays the only source of
 truth.
 """
@@ -43,6 +43,7 @@ import bisect
 import html
 import json
 import os
+import shutil
 import sys
 import webbrowser
 
@@ -214,12 +215,12 @@ def semantic_findings(semantic, text):
     read with `.get()` and a safe default rather than assumed present. This
     must not crash on that older shape, and must not invent data to fill it in.
 
-    Only a `status == "confirmed"` row may count toward a verdict: agreement
+    Only a `status == "confirmed"` row may mark an arm unclean: agreement
     below the gate is `low-agreement`, and a row the judge weighed and
     dismissed is `rejected` — see semantic_lint.judge_repeatedly's own
     docstring. A summary with no `status` at all (the older shape) is treated
-    as unconfirmed everywhere, so it can be READ on the page but never fails
-    an arm that a fresh, current-shape run would not have failed either.
+    as unconfirmed everywhere, so it can be READ on the page but never marks
+    unclean an arm that a fresh, current-shape run would not have either.
 
     `unjudged` is returned separately (not folded into `rows`) because it is
     not a finding at all — it is the absence of one, and the one case this
@@ -229,7 +230,7 @@ def semantic_findings(semantic, text):
     excluded by the sampler was never asked about, so it earns the same
     `pass=False` as a cell whose judge call failed (neither has been checked
     against the 52 semantic rules — see build_entry's UNJUDGED note for why
-    that is a precondition of PASS regardless of cause). But "not selected by
+    that is a precondition of a clean mark regardless of cause). But "not selected by
     design" and "the judge tried and failed" are different facts about the
     run, and a reader must be able to tell them apart without guessing from
     the error string, so it is its own field on the JSON and its own label on
@@ -374,26 +375,27 @@ def judge_overlap(by_judge, text):
     return rows, confirmed, False, False
 
 
-def build_entry(text, level, vocab, source=None, semantic=None):
+def build_entry(text, vocab, source=None, semantic=None):
     """Check one output, and return everything the page needs to draw it.
 
     `source` is the committed document this text rewrote. When given, and this
     text is not the source column itself, faithfulness.py compares the two:
-    PSTE-A1 says accuracy defeats every other rule, so fact loss fails the
-    verdict regardless of how clean the conformance findings are (PSTE-C6.3).
+    PSTE-A1 (§5.5, weight 1.0) says accuracy defeats every other rule, so fact
+    loss marks this entry unclean regardless of how clean the conformance
+    findings are.
 
     `semantic` is this arm's judge output (see `semantic_findings`). Only its
     CONFIRMED rows may affect `pass`: low-agreement and rejected rows are audit
-    material for a human, never a verdict input (semantic_lint.py's own
+    material for a human, never a data-quality input (semantic_lint.py's own
     docstring: "Treat every finding as a candidate that a person confirms, and
     never as a count to publish").
 
     A finding is COUNTABLE unless `pste_lint` marked it "arbitrated" (PSTE-N5,
     G7, G11, G12: rules that guess part of speech from a closed word list, which
     is never complete — see `pste_lint.ARBITRATED_RULES`). A countable finding
-    fails `pass` on its own, same as always. An arbitrated one is only ever a
-    CANDIDATE: it is still shown in `findings`, so a reader sees what the linter
-    flagged, but it fails `pass` only when the judge confirms it — which, when
+    marks `pass` False on its own, same as always. An arbitrated one is only ever
+    a CANDIDATE: it is still shown in `findings`, so a reader sees what the linter
+    flagged, but it marks `pass` False only when the judge confirms it — which, when
     the run judged this arm, arrives as a normal row in `semantic` under the
     same rule ID (semantic_lint.build_prompt asks the judge to confirm or
     reject each candidate through the existing "findings"/"considered" shape).
@@ -403,17 +405,17 @@ def build_entry(text, level, vocab, source=None, semantic=None):
 
     UNJUDGED is a fourth state, and the dangerous one: a cell whose judging
     call failed outright (run.py's semantic stage ran, but every pass for
-    THIS cell errored — an API limit, most often) must never render, or
-    verdict, the same as a cell the judge looked at and found clean. `pass`
+    THIS cell errored — an API limit, most often) must never render the
+    same as a cell the judge looked at and found clean. `pass`
     is forced False here, unconditionally, regardless of what the mechanical
-    checker and faithfulness found — an unjudged cell has not earned a PASS,
-    it has simply not been checked by 49 of the standard's 78 rules yet.
+    checker and faithfulness found — an unjudged cell has not earned a clean
+    mark, it has simply not been checked by 49 of the standard's 78 rules yet.
 
-    SAMPLED_OUT is a cause of UNJUDGED, not a separate verdict: run.py's
+    SAMPLED_OUT is a cause of UNJUDGED, not a separate state: run.py's
     rotate-and-anchor sampling (see `judge_sample`) may deliberately never
     send this cell to the judge at all. `pass` is forced False here for the
     same reason as any other unjudged cell — this text has not been checked
-    against the 52 semantic rules, so it cannot be claimed to PASS them,
+    against the 52 semantic rules, so it cannot be claimed clean against them,
     whether the gap is an error or a budget decision. What sampling changes is
     only how the reason reads: `sampledOut` marks this as "excluded by
     design," distinct from "the judge tried and failed," so a reader of the
@@ -421,7 +423,7 @@ def build_entry(text, level, vocab, source=None, semantic=None):
     """
     if not text:
         return {"missing": True}
-    result = pste_lint.check_text(text, level=level, vocab=vocab)
+    result = pste_lint.check_text(text, vocab=vocab)
     findings = sorted(
         result["findings"], key=lambda f: (f.get("line") or 0, f.get("column") or 0)
     )
@@ -429,7 +431,7 @@ def build_entry(text, level, vocab, source=None, semantic=None):
         finding["offset"] = offset_of(text, finding.get("line"), finding.get("column"))
         finding["token"] = token_of(text, finding["offset"])
     countable = [f for f in findings if not f.get("arbitrated")]
-    # spec/PSTE-1.md §15: a dropped fact (weight 1.0) and a missing hyphen
+    # spec/PSTE-1.md §4: a dropped fact (weight 1.0) and a missing hyphen
     # (weight 0.1) are not the same fault. Sum what pste_lint.add() already
     # attached to every finding, so the page never re-derives a weight.
     weighted = round(sum(f["weight"] for f in findings), 1)
@@ -448,6 +450,11 @@ def build_entry(text, level, vocab, source=None, semantic=None):
         "missing": False,
         "unjudged": unjudged,
         "sampledOut": sampled_out,
+        # Internal data-quality gate, not a rendered verdict: True only when
+        # every filter below is satisfied (countable findings, fact loss, a
+        # confirmed judge finding, an unjudged cell). The page shows weighted
+        # cost and clean-sentence rate; this key still decides which cells
+        # sort as "best" and which of those three checks to trust.
         "pass": (
             not unjudged and not countable and not fact_loss
             and not semantic_confirmed
@@ -470,26 +477,26 @@ def build_entry(text, level, vocab, source=None, semantic=None):
         "fidelity": fidelity,
         # From the LLM judge (semantic_lint.py), kept apart from `findings`:
         # different origin (a model's read, not a regular expression) and
-        # different reliability. Only `semanticConfirmed` counts toward `pass`;
+        # different reliability. Only `semanticConfirmed` affects `pass`;
         # every row, confirmed or not, is shown so a human can audit the judge.
         "semantic": semantic_rows,
         "semanticConfirmed": semantic_confirmed,
     }
 
 
-def pass_stats(passes, level, vocab):
+def pass_stats(passes, vocab):
     """Findings for every pass of every arm, and the share that passed.
 
     Returns {arm: {"findings": [n, n, n], "passed": k, "of": 3, "rate": pct}}.
     `rate` is the share of PASSES that conform, and not a grade for the text.
-    PSTE-1 §5.2 says a conformance count is not a measure of quality even where,
-    as here, the harness is allowed to show one; a reader must read the work list
-    rather than this number.
+    A conformance count is not a measure of quality even where, as here, the
+    harness is allowed to show one; a reader must read the work list rather
+    than this number.
     """
     out = {}
     for arm, texts in passes.items():
         counts = [
-            pste_lint.check_text(t, level=level, vocab=vocab)["total"] for t in texts
+            pste_lint.check_text(t, vocab=vocab)["total"] for t in texts
         ]
         if not counts:
             continue
@@ -551,7 +558,7 @@ def is_synthetic(pid):
 def overview(data, arms, anchor_docs=(), rotating_docs=()):
     """The matrix a reader wants at a glance: per document, per arm.
 
-    For each cell: did it pass, how many findings, and how many DISTINCT rules it
+    For each cell: is it clean, how many findings, and how many DISTINCT rules it
     broke. The last one matters on its own. Twelve findings of one rule is a single
     lesson the skill failed to teach, and three findings of three rules is three.
 
@@ -587,7 +594,7 @@ def overview(data, arms, anchor_docs=(), rotating_docs=()):
         # A row lands in at most one of the two judging buckets: an anchor is
         # never also counted as rotating (run.py's `judge_sample` keeps the
         # sets disjoint by construction), and a document neither judged this
-        # run contributes to neither — there is no semantic verdict to compare.
+        # run contributes to neither — there is no semantic finding to compare.
         judge_bucket = (
             totals_anchor if row["anchor"]
             else totals_rotating if row["rotating"]
@@ -604,15 +611,16 @@ def overview(data, arms, anchor_docs=(), rotating_docs=()):
             semantic_confirmed = cell.get("semanticConfirmed", 0)
             stats = (entry.get("passes") or {}).get(arm) or {}
             row["cells"][arm] = {
-                # PSTE-C6.3: no fact loss is a precondition of PASS, not a
-                # finding among the others. A clean-but-lossy cell must not
-                # read the same as a plain pass. A CONFIRMED semantic finding
-                # (from the LLM judge) fails the verdict the same way; a
-                # low-agreement or rejected one never does. Read from `cell`
-                # rather than recomputed here: build_entry already excludes an
-                # unconfirmed ARBITRATED finding (PSTE-N5/G7/G11/G12) from the
-                # verdict, and redoing the logic against the raw `findings`
-                # count would silently drop that exclusion in this second copy.
+                # PSTE-A1 (§5.5, weight 1.0): no fact loss is a precondition of
+                # a clean cell, not a finding among the others. A clean-but-lossy
+                # cell must not read the same as a plain clean one. A CONFIRMED
+                # semantic finding (from the LLM judge) marks it unclean the same
+                # way; a low-agreement or rejected one never does. Read from
+                # `cell` rather than recomputed here: build_entry already
+                # excludes an unconfirmed ARBITRATED finding (PSTE-N5/G7/G11/G12)
+                # from this gate, and redoing the logic against the raw
+                # `findings` count would silently drop that exclusion in this
+                # second copy.
                 "pass": cell.get("pass", False),
                 # UNJUDGED cells are the dangerous confusion this exists to
                 # prevent: a document the judge never reached must render
@@ -627,7 +635,7 @@ def overview(data, arms, anchor_docs=(), rotating_docs=()):
                 # deliberate budget decision rather than an error.
                 "sampledOut": cell.get("sampledOut", False),
                 "findings": len(findings),
-                # spec/PSTE-1.md §15: not a quality score, a conformance count
+                # spec/PSTE-1.md §4: not a quality score, a conformance count
                 # weighted by what the standard says matters. A dropped fact
                 # (1.0) and a missing hyphen (0.1) are not the same fault, and
                 # this is the number that says so beside the raw count.
@@ -737,7 +745,8 @@ def _semantic_for(entry, arm, texts, stage_ran):
     never judged, but a cell with GENERATED text (`texts.get(arm)`), in a
     snapshot where the stage ran for other cells, and that still has no
     `semantic[arm]` entry, was judged for and came back with nothing. That is
-    `unjudged`, not `None`. Real result: eval-2026-08-09-ae1315c4.json, where
+    `unjudged`, not `None`. This came from a real result, since deleted for
+    running on the corpus this project retired: eval-2026-08-09-ae1315c4.json, where
     4 of 28 generated cells sat silent inside an otherwise-judged run.
     """
     semantic = (entry.get("semantic") or {}).get(arm)
@@ -748,7 +757,7 @@ def _semantic_for(entry, arm, texts, stage_ran):
     return None
 
 
-def render(snapshot, level, source=""):
+def render(snapshot, source=""):
     vocab = pste_lint.load_vocab()
 
     # Schema 2 carries the committed document beside its rewrites. Show it as the
@@ -788,7 +797,7 @@ def render(snapshot, level, source=""):
             "derivedLicence": entry.get("derived_licence", ""),
             "arms": {
                 arm: build_entry(
-                    texts.get(arm), level, vocab, source=entry.get("source"),
+                    texts.get(arm), vocab, source=entry.get("source"),
                     semantic=_semantic_for(entry, arm, texts, stage_ran),
                 )
                 for arm in columns
@@ -798,14 +807,13 @@ def render(snapshot, level, source=""):
             # ordinary variance. `postmortem-chia-mempool` reached zero findings on
             # its second pass and not on the other two: a single number hides that
             # the arm can pass this document at all.
-            "passes": pass_stats(entry.get("passes") or {}, level, vocab),
+            "passes": pass_stats(entry.get("passes") or {}, vocab),
         }
     arms = columns
 
     git = snapshot.get("git") or {}
     payload = json.dumps(
         {
-            "level": level,
             "arms": arms,
             "armNote": ARM_NOTE,
             "controlText": snapshot.get("control_text", ""),
@@ -823,7 +831,7 @@ def render(snapshot, level, source=""):
     )
     # Name the tab after the result. A browser with several results open must not
     # show the same title on every tab.
-    title = f"PSTE eval level {level}"
+    title = "PSTE eval"
     if source:
         title += f" — {os.path.splitext(source)[0]}"
 
@@ -858,7 +866,7 @@ def self_test():
     # document lands in the first sentence and the rest read clean.
     _vocab = pste_lint.load_vocab()
     _text = "You should utilize the cache.\nThis sentence is fine.\n"
-    _found = pste_lint.check_text(_text, level=3, vocab=_vocab)["findings"]
+    _found = pste_lint.check_text(_text, vocab=_vocab)["findings"]
     assert _found, "the first sentence must break a rule for this test to mean anything"
     assert not any("offset" in f for f in _found), \
         "check_text does not place a finding in the document; if it now does, " \
@@ -905,15 +913,43 @@ def self_test():
     for bad in ("\\—", "\\·"):
         assert bad not in template, f"mangled escape near {bad!r}"
 
+    # The viewer cannot LINK docs/style.css (it is built into evals/results/ too,
+    # a path with no docs/ above it), so its palette is a hand-kept copy instead.
+    # A copy drifts silently the moment one file changes and the other does not,
+    # so this checks the shared tokens still agree rather than trusting the
+    # comment above :root in report-template.html that says they do.
+    style_css_path = os.path.join(ROOT, "docs", "style.css")
+    with open(style_css_path, encoding="utf-8") as fh:
+        style_css = fh.read()
+    shared_tokens = {
+        "--bg": "#17171a", "--text": "#e8e6e3", "--muted": "#8f8b85",
+        "--accent": "#e8a23a", "--diff-add-text": "#a6d3a6",
+        "--diff-del-text": "#e5a3a3",
+    }
+    for token, dark_value in shared_tokens.items():
+        assert f"{token}: {dark_value}" in style_css, (
+            f"{token} in docs/style.css no longer matches the value "
+            f"report-template.html was copied from — update both"
+        )
+    # report-template.html renames a few of these (--text -> --ink, --muted ->
+    # --dim, --accent -> --hit-edge/--focus family) rather than sharing names,
+    # since its own tokens predate this copy and drive many more selectors.
+    # Check by VALUE, the thing that can actually drift unnoticed.
+    for dark_value in ("#17171a", "#e8e6e3", "#8f8b85", "#a6d3a6", "#e5a3a3"):
+        assert dark_value in template, (
+            f"{dark_value} is a docs/style.css dark-mode color that "
+            f"report-template.html's copy no longer carries"
+        )
+
     # A finding marks its own token, not the whole line.
     text = "The parser is robust."
-    entry = build_entry(text, 3, vocab)
+    entry = build_entry(text, vocab)
     assert not entry["pass"], entry
     assert "<mark" in entry["html"], entry["html"]
     assert "robust</mark>" in entry["html"], entry["html"]
 
-    # Clean text carries no mark, and reports a pass.
-    clean = build_entry("Set the flag. The parser reads the file.", 2, vocab)
+    # Clean text carries no mark, and reports pass=True.
+    clean = build_entry("Set the flag. The parser reads the file.", vocab)
     assert clean["pass"], clean["findings"]
     assert "<mark" not in clean["html"]
     # A clean document's weighted total is 0, and every one of its sentences
@@ -921,7 +957,7 @@ def self_test():
     assert clean["weighted"] == 0, clean["weighted"]
     assert clean["cleanSentences"] == {"clean": 2, "of": 2, "rate": 100.0}, clean
 
-    # WEIGHTED TOTAL (spec/PSTE-1.md §15): a straight sum of what pste_lint
+    # WEIGHTED TOTAL (spec/PSTE-1.md §4): a straight sum of what pste_lint
     # already attached to each finding, never a second lookup. "robust" alone
     # trips one rule with a known, non-1.0 weight — this is a regression on
     # the sum itself, not on pste_lint's table.
@@ -933,7 +969,7 @@ def self_test():
     # exactly one of the two counts as clean — never a fractional blend, and
     # never "both dirty" just because the document as a whole fails.
     two_sentence = "The parser is robust. Set the flag."
-    mixed = build_entry(two_sentence, 3, vocab)
+    mixed = build_entry(two_sentence, vocab)
     assert mixed["cleanSentences"]["of"] == 2, mixed["cleanSentences"]
     assert mixed["cleanSentences"]["clean"] == 1, mixed["cleanSentences"]
     assert mixed["cleanSentences"]["rate"] == 50.0, mixed["cleanSentences"]
@@ -943,7 +979,6 @@ def self_test():
     many = build_entry(
         "Going forward, we will be leveraging a very robust solution; "
         "it should utilize the cache.",
-        3,
         vocab,
     )
     depth = 0
@@ -954,36 +989,37 @@ def self_test():
     assert many["html"].count("<mark") >= 3, many["html"]
 
     # Text that a reader supplies must not become markup.
-    hostile = build_entry("<script>alert(1)</script> is robust.", 3, vocab)
+    hostile = build_entry("<script>alert(1)</script> is robust.", vocab)
     assert "<script>" not in hostile["html"], hostile["html"]
     assert "&lt;script&gt;" in hostile["html"]
 
     # A missing arm draws a note, and does not raise.
-    assert build_entry(None, 2, vocab)["missing"]
+    assert build_entry(None, vocab)["missing"]
 
-    # PSTE-C6.3: fact loss FAILS the verdict even when conformance is clean.
+    # PSTE-A1 (weight 1.0): fact loss marks the entry unclean even when
+    # conformance is clean.
     # "3 attempts" dropping to no count at all is a lost number, and the rest
     # of the sentence has nothing else pste_lint would flag.
     src = "The client retries 3 times. Wait 30 seconds between attempts."
-    lossy = build_entry("The client retries. Wait between attempts.", 2, vocab, source=src)
+    lossy = build_entry("The client retries. Wait between attempts.", vocab, source=src)
     assert not lossy["pass"], lossy
     assert lossy["factLoss"], lossy
     assert not lossy["findings"], "this case must be clean but lossy, not both"
 
     # A faithful rewrite of the same source, even a shorter one, still passes.
-    faithful = build_entry("The client makes 3 attempts. Wait 30 seconds between.", 2, vocab, source=src)
+    faithful = build_entry("The client makes 3 attempts. Wait 30 seconds between.", vocab, source=src)
     assert faithful["pass"], faithful
     assert not faithful["factLoss"], faithful
 
     # The source column is never compared against itself.
-    self_cmp = build_entry(src, 2, vocab, source=src)
+    self_cmp = build_entry(src, vocab, source=src)
     assert self_cmp["fidelity"] is None, self_cmp
 
-    # SEMANTIC FINDINGS. Only a CONFIRMED row may fail the verdict; a
+    # SEMANTIC FINDINGS. Only a CONFIRMED row may mark the entry unclean; a
     # low-agreement or rejected row is audit material and must still appear.
     clean_mech = "Set the flag. The parser reads the file."
     sem_confirmed = build_entry(
-        clean_mech, 2, vocab,
+        clean_mech, vocab,
         semantic={"summary": [
             {"rule": "PSTE-A1", "quote": "x", "problem": "dropped a fact",
              "fix": "say it", "confidence": "high", "reason": "the count vanished",
@@ -995,7 +1031,7 @@ def self_test():
              "line": None, "column": None, "located": False},
         ]},
     )
-    assert not sem_confirmed["pass"], sem_confirmed  # mechanically clean, judge fails it
+    assert not sem_confirmed["pass"], sem_confirmed  # mechanically clean, judge marks it unclean
     assert sem_confirmed["semanticConfirmed"] == 1, sem_confirmed
     assert len(sem_confirmed["semantic"]) == 2, "rejected rows must still be reported"
     statuses = {r["rule"]: r["status"] for r in sem_confirmed["semantic"]}
@@ -1003,9 +1039,9 @@ def self_test():
     rejected_row = next(r for r in sem_confirmed["semantic"] if r["rule"] == "PSTE-V6")
     assert "no underlying verb" in rejected_row["reason"], rejected_row
 
-    # A low-agreement row alone must not fail the verdict.
+    # A low-agreement row alone must not mark the entry unclean.
     sem_low = build_entry(
-        clean_mech, 2, vocab,
+        clean_mech, vocab,
         semantic={"summary": [
             {"rule": "PSTE-D6", "quote": "x", "problem": "p", "fix": "f",
              "confidence": "low", "reason": "r", "seen_in": 1, "of": 5,
@@ -1027,7 +1063,7 @@ def self_test():
                 "line": 1, "column": 1, "located": True}
 
     two_judges = build_entry(
-        clean_mech, 2, vocab,
+        clean_mech, vocab,
         semantic={"by_judge": {
             "claude-opus-5": {"summary": [
                 made("PSTE-A1", "a dropped fact", "confirmed"),
@@ -1055,7 +1091,7 @@ def self_test():
     # row that stays carries every judge's own words.
     assert a1["quotes"]["claude-opus-5"] == "a dropped fact", a1
     assert a1["quotes"]["claude-sonnet-5"] == "a missing number", a1
-    # Overlap rows count toward the verdict the same as plain confirmed ones.
+    # Overlap rows mark the entry unclean the same as plain confirmed ones.
     # Two offences, not three. A1 is one finding two judges agreed on, and D6
     # is one finding a single judge confirmed. Counting A1 once per judge made
     # agreement look like more faults.
@@ -1066,7 +1102,7 @@ def self_test():
     # judges that answered agreed" stays true even when a third named model
     # never produced a row at all.
     one_failed = build_entry(
-        clean_mech, 2, vocab,
+        clean_mech, vocab,
         semantic={"by_judge": {
             "claude-opus-5": {"summary": [made("PSTE-A1", "x", "confirmed")]},
             "claude-sonnet-5": {"summary": [made("PSTE-A1", "y", "confirmed")]},
@@ -1080,7 +1116,7 @@ def self_test():
     # EVERY judge failing must read as UNJUDGED, the same as a single-judge
     # cell whose one call failed — never as "judged and clean".
     all_failed = build_entry(
-        clean_mech, 2, vocab,
+        clean_mech, vocab,
         semantic={"by_judge": {
             "claude-opus-5": {"unjudged": True, "error": "rate limited"},
             "claude-sonnet-5": {"unjudged": True, "error": "timed out"},
@@ -1094,7 +1130,7 @@ def self_test():
     # with no `judge`/`judges` key at all, so the page's existing single-judge
     # rendering needs no branch.
     single = build_entry(
-        clean_mech, 2, vocab,
+        clean_mech, vocab,
         semantic={"summary": [made("PSTE-A1", "x", "confirmed")]},
     )
     assert "judge" not in single["semantic"][0], single["semantic"][0]
@@ -1102,8 +1138,8 @@ def self_test():
     assert single["semantic"][0]["status"] == "confirmed", single["semantic"][0]
 
     # No semantic data at all (judge never ran) must not crash, and must not
-    # fabricate a verdict-affecting finding.
-    no_sem = build_entry(clean_mech, 2, vocab, semantic=None)
+    # fabricate an unclean-marking finding.
+    no_sem = build_entry(clean_mech, vocab, semantic=None)
     assert no_sem["pass"] and no_sem["semantic"] == [], no_sem
 
     # UNJUDGED. run.py's judging stage ran, but this one cell's judge call
@@ -1111,15 +1147,15 @@ def self_test():
     # different thing from `semantic=None` above: the stage ran, this cell
     # just never got an answer. Regression for the incomplete run that
     # reported `failures: 0` while 4 of 28 cells sat empty and silent — a
-    # cell like this must FAIL, must say so with its own `unjudged` flag, and
-    # must not be confusable with a clean pass on the mechanically-perfect
+    # cell like this must mark unclean, must say so with its own `unjudged`
+    # flag, and must not be confusable with a clean pass on the mechanically-perfect
     # text it wraps.
     unjudged = build_entry(
-        clean_mech, 2, vocab,
+        clean_mech, vocab,
         semantic={"unjudged": True, "error": "rate limited"},
     )
     assert unjudged["unjudged"] is True, unjudged
-    assert not unjudged["pass"], "an unjudged cell must never register as PASS"
+    assert not unjudged["pass"], "an unjudged cell must never register as clean"
     assert unjudged["semantic"] == [] and unjudged["semanticConfirmed"] == 0, unjudged
     # And the matrix (overview) must carry the same flag through per-cell, not
     # just the document-detail shape above.
@@ -1133,18 +1169,18 @@ def self_test():
     # SAMPLED_OUT (run.py's rotate-and-anchor judge sampling). A cell that was
     # never SENT to the judge — a deliberate coverage decision — must still be
     # `unjudged` (it has not been checked against the 52 semantic rules, so it
-    # cannot claim PASS), but must carry its own `sampledOut` flag so it is
+    # cannot claim clean), but must carry its own `sampledOut` flag so it is
     # never confused with a cell whose judge call was made and failed. That
     # confusion is exactly the bug commit 85fe062 fixed for the other case;
     # sampling must not reopen the same hole with a different cause.
     sampled_out = build_entry(
-        clean_mech, 2, vocab,
+        clean_mech, vocab,
         semantic={"unjudged": True, "sampled_out": True,
                   "error": "not selected for judging this run"},
     )
     assert sampled_out["unjudged"] is True, sampled_out
     assert sampled_out["sampledOut"] is True, sampled_out
-    assert not sampled_out["pass"], "a sampled-out cell must never register as PASS"
+    assert not sampled_out["pass"], "a sampled-out cell must never register as clean"
 
     # A judge-call FAILURE must NOT be mislabelled sampledOut. The two causes
     # of `unjudged` must stay distinguishable, not just presentable.
@@ -1172,12 +1208,12 @@ def self_test():
     # "other-doc" was not selected this run) contributes to neither total.
     judged_entry = {
         "category": "c",
-        "arms": {"control": build_entry(clean_mech, 2, vocab)},
+        "arms": {"control": build_entry(clean_mech, vocab)},
         "passes": {},
     }
     other_entry = {
         "category": "c",
-        "arms": {"control": build_entry(clean_mech, 2, vocab)},
+        "arms": {"control": build_entry(clean_mech, vocab)},
         "passes": {},
     }
     ov3 = overview(
@@ -1209,12 +1245,12 @@ def self_test():
     # sentence total is exactly 2 + 2 with only 3 of the 4 clean.
     dirty_entry = {
         "category": "c",
-        "arms": {"control": build_entry("The parser is robust.", 2, vocab)},
+        "arms": {"control": build_entry("The parser is robust.", vocab)},
         "passes": {},
     }
     clean_entry = {
         "category": "c",
-        "arms": {"control": build_entry(clean_mech, 2, vocab)},
+        "arms": {"control": build_entry(clean_mech, vocab)},
         "passes": {},
     }
     ov4 = overview({"dirty": dirty_entry, "clean": clean_entry}, ["control"])
@@ -1228,19 +1264,19 @@ def self_test():
     assert bucket["sentClean"] == 0 + 2, bucket  # the dirty one's sentence is not clean
 
     # ARBITRATED FINDINGS (PSTE-N5/G7/G11/G12). Unconfirmed, a candidate must NOT
-    # fail the verdict on its own — it is still visible in "findings" for a human
-    # to read, but "pass" ignores it until the judge confirms it.
-    arb_text = "Perform an analysis of the log file."  # trips PSTE-G7 only
-    arb_unconfirmed = build_entry(arb_text, 2, vocab)
+    # mark the entry unclean on its own — it is still visible in "findings" for a
+    # human to read, but "pass" ignores it until the judge confirms it.
+    arb_text = "Conduct an analysis of the log file."  # trips PSTE-G7 only
+    arb_unconfirmed = build_entry(arb_text, vocab)
     assert any(f["rule"] == "PSTE-G7" for f in arb_unconfirmed["findings"]), \
         arb_unconfirmed["findings"]
     assert arb_unconfirmed["pass"], \
-        "an unconfirmed arbitrated finding must not fail the verdict"
+        "an unconfirmed arbitrated finding must not mark the entry unclean"
 
     # The SAME finding, but the judge confirmed it under the same rule ID: now it
-    # must fail, through the ordinary semantic-confirmed gate and not a new one.
+    # must mark it unclean, through the ordinary semantic-confirmed gate and not a new one.
     arb_confirmed = build_entry(
-        arb_text, 2, vocab,
+        arb_text, vocab,
         semantic={"summary": [
             {"rule": "PSTE-G7", "quote": "Perform an analysis", "problem": "p",
              "fix": "f", "confidence": "high", "reason": "analysis has an "
@@ -1251,12 +1287,12 @@ def self_test():
     assert not arb_confirmed["pass"], arb_confirmed
     assert arb_confirmed["semanticConfirmed"] == 1, arb_confirmed
 
-    # A COUNTABLE finding (PSTE-X1, a semicolon) fails the verdict directly, with
-    # no judge involved at all — the routing must not have touched this path.
+    # A COUNTABLE finding (PSTE-X1, a semicolon) marks the entry unclean directly,
+    # with no judge involved at all — the routing must not have touched this path.
     countable_text = "The build failed; the log shows why."
-    countable = build_entry(countable_text, 2, vocab)
+    countable = build_entry(countable_text, vocab)
     assert any(f["rule"] == "PSTE-X1" for f in countable["findings"]), countable
-    assert not countable["pass"], "a countable finding must fail directly"
+    assert not countable["pass"], "a countable finding must mark the entry unclean directly"
 
     # NO DOUBLE-COUNTING. A confirmed arbitrated candidate is one entry in
     # `semantic` (from the judge) plus its one mechanical entry in `findings`
@@ -1277,14 +1313,14 @@ def self_test():
     # rows must still render — as unconfirmed, since there is no `status` to
     # trust — and must never crash the build.
     old_shape = build_entry(
-        clean_mech, 2, vocab,
+        clean_mech, vocab,
         semantic={"summary": [
             {"rule": "PSTE-A1", "quote": "x", "seen_in": 2, "of": 2,
              "agreement": 1.0, "problem": "p", "fix": "f", "confidence": "high",
              "line": 1, "column": 1, "located": True},
         ]},
     )
-    assert old_shape["pass"], "an old-shape row with no status must not fail the verdict"
+    assert old_shape["pass"], "an old-shape row with no status must not mark the entry unclean"
     assert old_shape["semantic"][0]["status"] == "low-agreement", old_shape["semantic"]
 
     # THE MARK MUST LAND ON THE OFFENDING WORD.
@@ -1299,7 +1335,7 @@ def self_test():
         "\n"
         "The parser is robust.\n"
     )
-    entry = build_entry(multi, 3, vocab)
+    entry = build_entry(multi, vocab)
     hit = [f for f in entry["findings"] if f["token"] == "robust"]
     assert hit, [(f["rule"], f["token"]) for f in entry["findings"]]
     assert offset_of(multi, hit[0]["line"], hit[0]["column"]) == multi.index("robust")
@@ -1315,13 +1351,14 @@ def self_test():
     assert offset_of("ab\ncd\n", 9, 1) is None
     assert offset_of("ab\ncd\n", 2, 1) == 3
 
-    # This page is the evaluation harness. PSTE-1 §5.2 permits it to carry a rate,
-    # unlike the distributed checker (PSTE-C8), so there is nothing left to ban
-    # here — the old assertion banned literal substrings ("per_100w", "% conform")
-    # that this page never emitted even under the withdrawn rule; it passed by
-    # accident, not by testing anything real. What is real and worth guarding:
-    # the not-a-quality-measure disclaimer must survive into the page, since §5.2
-    # requires the harness to keep carrying that notice even while it shows a rate.
+    # This page is the evaluation harness, distinct from `pste_lint.py`'s own
+    # report (evals/pste_lint.py: format_table), which spec/PSTE-1.md §4 lets
+    # carry a weighted measure but never a PASS/FAIL verdict. There is nothing
+    # to ban here beyond that — the old assertion banned literal substrings
+    # ("per_100w", "% conform") that this page never emitted even under the
+    # withdrawn rule; it passed by accident, not by testing anything real.
+    # What is real and worth guarding: the not-a-quality-measure disclaimer
+    # must survive into the page, since §4 requires it even while showing a rate.
     page = render(
         {
             "arms": ["control", "pste"],
@@ -1335,7 +1372,6 @@ def self_test():
                 }
             },
         },
-        2,
         "eval-2026-08-03-abc12345.json",
     )
     assert "Conformance is not quality" in page, page
@@ -1343,7 +1379,7 @@ def self_test():
     for placeholder in ("__DATA__", "__DISCLAIMER__", "__TITLE__"):
         assert placeholder not in page, placeholder
     # Two results must not produce the same tab title.
-    assert "<title>PSTE eval level 2 — eval-2026-08-03-abc12345</title>" in page
+    assert "<title>PSTE eval — eval-2026-08-03-abc12345</title>" in page
     # The page must say which result it came from, so a screenshot stays traceable.
     assert "abc12345" in page and "eval-2026-08-03" in page
     assert "Write a thing." in page
@@ -1372,7 +1408,6 @@ def self_test():
                 }
             },
         },
-        2,
         "eval-2026-08-03-abc12345.json",
     )
     data = json.loads(two.split("const DATA = ", 1)[1].split(";\n", 1)[0])
@@ -1416,7 +1451,6 @@ def self_test():
                 }
             },
         },
-        2,
         "r.json",
     )
     sa_data = json.loads(sa.split("const DATA = ", 1)[1].split(";\n", 1)[0])
@@ -1432,7 +1466,6 @@ def self_test():
             "control_text": "x",
             "results": {"t": {"category": "c", "outputs": {"control": "Set it."}}},
         },
-        2,
         "results.json",
     )
     assert "no provenance recorded" in old
@@ -1470,7 +1503,6 @@ def self_test():
                 },
             },
         },
-        2,
         "eval-2026-08-09-ae1315c4.json",
     )
     inc_data = json.loads(incomplete.split("const DATA = ", 1)[1].split(";\n", 1)[0])
@@ -1491,7 +1523,6 @@ def self_test():
             "control_text": "x",
             "results": {"t": {"category": "c", "outputs": {"control": "Set it."}}},
         },
-        2,
         "results.json",
     )
     nj_data = json.loads(never_judged.split("const DATA = ", 1)[1].split(";\n", 1)[0])
@@ -1502,20 +1533,45 @@ def self_test():
     return 0
 
 
-def write_pages(snapshot, result_path, levels=(2,)):
-    """Write a page for each level beside the result, and return the paths.
+HELP_PAGE = os.path.join(ROOT, "docs", "eval-help.html")
+
+
+def write_help_page(out_dir):
+    """Copy the help page beside a viewer page, so its "Help" link resolves.
+
+    The viewer is generated into both evals/results/ and docs/results/, and a
+    reader can open either copy straight from the filesystem, so the link
+    cannot point at a docs/-only path. Copying the one help page next to
+    every viewer page keeps it a same-directory link everywhere the viewer
+    itself is written, the same way `pages.py` already copies the viewer page
+    itself into docs/results/.
+    """
+    dst = os.path.join(out_dir, "eval-help.html")
+    if os.path.abspath(dst) != os.path.abspath(HELP_PAGE):
+        shutil.copy2(HELP_PAGE, dst)
+    return dst
+
+
+def write_pages(snapshot, result_path):
+    """Write the report page beside the result, and return its path in a list.
 
     `run.py` calls this so a run produces its page without a second command.
+    Returns a list, not a single path, because `run.py` only ever loops over
+    the result rather than branching on how many pages came back.
+
+    The page is written as "-level3.html" — the suffix the old two-level tool
+    used for its stricter page — so `evals/pages.py`'s run index needs no
+    change to find it, and an old results directory that still carries a
+    "-level2.html" beside a "-level3.html" is not shadowed by a new name.
     """
-    written = []
-    for level in levels:
-        out = os.path.splitext(result_path)[0] + f"-level{level}.html"
-        page = render(snapshot, level, os.path.basename(result_path))
-        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-        with open(out, "w", encoding="utf-8") as fh:
-            fh.write(page)
-        written.append(out)
-    return written
+    out_dir = os.path.dirname(os.path.abspath(result_path))
+    write_help_page(out_dir)
+    out = os.path.splitext(result_path)[0] + "-level3.html"
+    page = render(snapshot, os.path.basename(result_path))
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    with open(out, "w", encoding="utf-8") as fh:
+        fh.write(page)
+    return [out]
 
 
 def main():
@@ -1528,7 +1584,6 @@ def main():
         "--snapshot", default=None, help="a result file. Defaults to the newest."
     )
     ap.add_argument("--out", default=None, help="defaults to the result name, .html")
-    ap.add_argument("--level", type=int, default=2, choices=[1, 2, 3])
     ap.add_argument("--open", action="store_true", help="open the page when it is built")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
@@ -1546,15 +1601,16 @@ def main():
 
     # The page sits beside the result it came from, and carries its name, so a
     # directory of results produces a directory of pages that still match.
-    out = args.out or os.path.splitext(path)[0] + f"-level{args.level}.html"
+    out = args.out or os.path.splitext(path)[0] + "-level3.html"
 
-    page = render(snapshot, args.level, os.path.basename(path))
+    page = render(snapshot, os.path.basename(path))
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w", encoding="utf-8") as fh:
         fh.write(page)
+    write_help_page(os.path.dirname(os.path.abspath(out)))
 
     print(f"wrote {out}")
-    print(f"  {provenance.describe_result(snapshot, path)}, level {args.level}")
+    print(f"  {provenance.describe_result(snapshot, path)}")
     if args.open:
         webbrowser.open("file://" + os.path.abspath(out))
     return 0
