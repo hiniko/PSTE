@@ -1,0 +1,291 @@
+# PSTE-1 Appendix B source of truth.
+#
+# Terms are words OUTSIDE the approved list that a writer MAY use because they name
+# something in software that plain English cannot name accurately. PSTE-V5 constrains
+# them: if an approved word says it accurately, use the approved word.
+#
+# The example lists are illustrative, not exhaustive. A word belongs to a category if
+# it fits the category description, whether or not the example list names it.
+
+meta:
+  spec: PSTE-1
+  version: 0.1.0
+
+# Common domain nouns.
+#
+# NOT a permission list, and NOT exhaustive. A word absent from here is not thereby
+# forbidden: PSTE-V1 leaves the judgement to the writer, because no list reaches the
+# tail. `mempool`, `clvm`, and `gopls` are real vocabulary in their projects and will
+# never appear here.
+#
+# This exists so a tool has a lookup for the vocabulary that EVERY programmer shares.
+# Its only job is to stop a checker reporting `cache` or `latency` as unusual.
+# Growing it toward one project's words is the failure mode: stop at the common core.
+common_nouns:
+  - adapter
+  - address
+  - administrator
+  - agent
+  - alert
+  - artifact
+  - assertion
+  - backlog
+  - backoff
+  - base64
+  - benchmark
+  - binary
+  - blob
+  - bootstrap
+  - branch
+  - breaker
+  - bucket
+  - buffer
+  - build
+  - byte
+  - cache
+  - callback
+  - caller
+  - canary
+  - certificate
+  - changelog
+  - check
+  - checkpoint
+  - checksum
+  - circuit
+  - claim
+  - class
+  - client
+  - closure
+  - cluster
+  - column
+  - commit
+  - compaction
+  - compiler
+  - config
+  - consumer
+  - container
+  - context window
+  - coroutine
+  - correlation id
+  - coverage
+  - credential
+  - daemon
+  - dashboard
+  - deadlock
+  - dependency
+  - deployment
+  - deterministic
+  - developer
+  - dispatcher
+  - downgrade
+  - duration
+  - election
+  - embedding
+  - end user
+  - endpoint
+  - environment
+  - epoch
+  - eval
+  - exploit
+  - failover
+  - feature flag
+  - fine-tuning
+  - fixture
+  - flag
+  - flake
+  - follower
+  - foreign key
+  - function
+  - gateway
+  - gauge
+  - generic
+  - group
+  - grpc
+  - hallucination
+  - handler
+  - hash
+  - header
+  - health
+  - heartbeat
+  - histogram
+  - hook
+  - idempotent
+  - index
+  - inference
+  - instance
+  - instant
+  - interface
+  - interval
+  - key
+  - key pair
+  - kilobyte
+  - label
+  - large language model
+  - latency
+  - leader
+  - linter
+  - liveness
+  - load balancer
+  - lock
+  - log
+  - maintainer
+  - manifest
+  - megabyte
+  - memory leak
+  - merge
+  - method
+  - metric
+  - middleware
+  - migration
+  - millisecond
+  - mock
+  - model
+  - module
+  - mutex
+  - namespace
+  - nginx
+  - node
+  - nonce
+  - null pointer
+  - on-call engineer
+  - operator
+  - output
+  - overflow
+  - package
+  - parser
+  - partition
+  - patch
+  - payload
+  - percentile
+  - pipeline
+  - plugin
+  - pod
+  - policy
+  - pool
+  - primary
+  - primary key
+  - principal
+  - probe
+  - process
+  - promise
+  - prompt
+  - proxy
+  - publisher
+  - pull request
+  - pytest
+  - queue
+  - quorum
+  - race condition
+  - rate limit
+  - readiness
+  - rebase
+  - recursion
+  - region
+  - regression
+  - release
+  - replica
+  - replication
+  - repository
+  - request
+  - response
+  - retry
+  - reviewer
+  - revision
+  - role
+  - rollback
+  - rollout
+  - route
+  - row
+  - runtime
+  - salt
+  - scheduler
+  - schema
+  - scope
+  - second
+  - secret
+  - selector
+  - server
+  - shard
+  - side effect
+  - signature
+  - site
+  - skill
+  - snapshot
+  - socket
+  - span
+  - spy
+  - stack trace
+  - stream
+  - stub
+  - suite
+  - table
+  - tag
+  - temperature
+  - test
+  - thread
+  - throttle
+  - throughput
+  - time zone
+  - timeout
+  - timestamp
+  - token
+  - tool call
+  - trace
+  - training
+  - transaction
+  - type
+  - type check
+  - upgrade
+  - user
+  - utc
+  - virtual machine
+  - vulnerability
+  - webpack
+  - worker
+  - wrapper
+  - zone
+
+term_verbs:
+  # PSTE-V6: a term verb MUST NOT be used as a noun. Write "I deployed the service"
+  # or "I made a deployment", never "I did a deploy".
+
+  - id: BV1
+    name: Version control and delivery
+    verbs: [commit, branch, merge, rebase, cherry-pick, revert, tag, release, deploy,
+            roll back, promote, ship, deprecate, backport]
+
+  - id: BV2
+    name: Program construction
+    verbs: [compile, build, link, refactor, rename, extract, inline, instantiate,
+            override, implement, subclass, serialize, deserialize, parse, encode,
+            decode, validate, sanitize, escape]
+
+  - id: BV3
+    name: Runtime operations
+    verbs: [run, execute, boot, reboot, restart, install, uninstall, upgrade, migrate,
+            provision, scale, throttle, retry, timeout, cache, invalidate, flush,
+            queue, poll, subscribe, publish]
+
+  - id: BV4
+    name: Data operations
+    verbs: [query, insert, update, delete, drop, truncate, index, join, filter, sort,
+            aggregate, backup, restore, replicate, shard]
+
+  - id: BV5
+    name: Testing and diagnosis
+    verbs: [test, assert, mock, stub, profile, trace, debug, reproduce, bisect, lint,
+            benchmark]
+
+  - id: BV6
+    name: Interface operations
+    description: Actions a user performs on a user interface.
+    verbs: [click, tap, swipe, type, enter, press, select, deselect, drag, drop, scroll,
+            zoom, copy, cut, paste, save, open, close, render]
+
+  - id: BV7
+    name: Security operations
+    verbs: [authenticate, authorize, encrypt, decrypt, sign, verify, hash, rotate,
+            revoke, grant, audit]
+    note: >
+      `verify` is approved here ONLY in its cryptographic sense, such as verifying a
+      signature. For ordinary inspection use the approved word `check`. See PSTE-V2.

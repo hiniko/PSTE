@@ -1,0 +1,47 @@
+# This repository checks its own prose with its own checker.
+#
+#   pip install pre-commit && pre-commit install
+#
+# Level 2 is the default. The specification and the skill prompt are excluded
+# because they quote text that breaks the rules in order to teach the rules.
+repos:
+  - repo: local
+    hooks:
+      - id: pste-lint
+        name: PSTE conformance
+        entry: python3 evals/pste_lint.py --level 2 --no-disclaimer
+        language: system
+        types: [markdown]
+        # Excluded because they quote text that breaks the rules in order to teach
+        # or to list them. The appendices are generated.
+        exclude: ^(spec/PSTE-1\.md|spec/appendix-[abc]\.md|skill/SKILL\.md|PLAN\.md)$
+
+      - id: pste-lint-self-test
+        name: PSTE checker self-test
+        entry: python3 evals/pste_lint.py --self-test
+        language: system
+        pass_filenames: false
+        files: ^(evals/pste_lint\.py|spec/wordlist\.yaml|spec/terms\.yaml)$
+
+      - id: pste-appendices
+        name: PSTE appendices match the word list
+        entry: python3 lib/build_appendix.py --check
+        language: system
+        pass_filenames: false
+        files: ^spec/(wordlist|terms)\.yaml$
+
+      # Verification tooling. Repo-only, and free to take dependencies later.
+      # See evals/FUTURE-WORK.md for why this tier is separate.
+      - id: pste-readability-self-test
+        name: readability checks self-test
+        entry: python3 evals/readability.py --self-test
+        language: system
+        pass_filenames: false
+        files: ^evals/(readability\.py|core-vocabulary\.txt)$
+
+      - id: pste-faithfulness-self-test
+        name: fact-preservation self-test
+        entry: python3 evals/faithfulness.py --self-test
+        language: system
+        pass_filenames: false
+        files: ^evals/faithfulness\.py$

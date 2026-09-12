@@ -1,0 +1,42 @@
+# A clean room for generating eval baselines.
+#
+# This image exists so that a generated document carries no instruction from the
+# machine that produced it. It holds no CLAUDE.md, no plugin, no hook, no memory,
+# and no configured skill. Nothing is inherited, because nothing is here.
+#
+# Authentication arrives as an environment variable at run time, so the image
+# holds no credential and is safe to rebuild and to share.
+#
+#   claude setup-token                      # once, on a machine with a browser
+#   export CLAUDE_CODE_OAUTH_TOKEN=...      # bills to the subscription
+#
+#   docker build -f evals/Dockerfile.clean -t pste-eval-clean .
+#   docker run --rm -e CLAUDE_CODE_OAUTH_TOKEN -v "$PWD:/repo:ro" \
+#       pste-eval-clean claude -p -- "your question"
+#
+# ANTHROPIC_API_KEY works too, and bills to API credits instead.
+
+FROM node:22-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g @anthropic-ai/claude-code
+
+# A non-root user with an empty home. No configuration reaches this account.
+RUN useradd --create-home --shell /bin/bash evaluser
+
+# A writable scratch directory that the agent owns. The repository mounts read
+# only, so without this the agent has nowhere to put a temporary file and reports
+# a permission error instead of answering the question.
+RUN mkdir -p /work && chown evaluser:evaluser /work
+
+USER evaluser
+WORKDIR /work
+
+# Fail loudly rather than fall back to an interactive login.
+ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+
+ENTRYPOINT []
+CMD ["claude", "--version"]

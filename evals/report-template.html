@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --panel: #f4f5f7;
+    --edge: #9aa1ab;
+    --ink: #14161a;
+    --dim: #4a515b;
+    --pass: #15602c;
+    --fail: #9a1b1b;
+    --hit-bg: #ffe08a;
+    --hit-edge: #a8730a;
+    --focus: #0b5fd0;
+    --sem: #6a3fb0;
+    --sem-bg: #efe6ff;
+    --sem-low: #8a6d15;
+    --sem-low-bg: #fff3d0;
+    --sem-rej: #5a616c;
+    --sem-rej-bg: #eceef1;
+    /* UNJUDGED: neither pass (green) nor fail (red) nor a specific finding
+       (amber/purple) — a distinct blue-gray so it cannot be mistaken for any
+       existing verdict colour on the page. */
+    --unjudged: #1c5c8a;
+    --unjudged-bg: #e3edf5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101215;
+      --panel: #1a1d22;
+      --edge: #454c57;
+      --ink: #eef1f5;
+      --dim: #aeb6c2;
+      --pass: #67dd8e;
+      --fail: #ff8b8b;
+      --hit-bg: #6a4c05;
+      --hit-edge: #ffc84a;
+      --focus: #6fb0ff;
+      --sem: #c3a6ff;
+      --sem-bg: #2c2140;
+      --sem-low: #e0c264;
+      --sem-low-bg: #3a300f;
+      --sem-rej: #9aa1ab;
+      --sem-rej-bg: #262a30;
+      --unjudged: #7fc2ff;
+      --unjudged-bg: #142a3a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 2px solid var(--edge);
+    background: var(--panel);
+  }
+  h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: .01em; }
+  .meta { color: var(--dim); font-size: 13px; }
+  select {
+    font: inherit;
+    padding: 6px 10px;
+    background: var(--bg);
+    color: var(--ink);
+    border: 2px solid var(--edge);
+    border-radius: 6px;
+    min-width: 20ch;
+  }
+  select:focus-visible, button:focus-visible, mark:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  label { font-size: 13px; color: var(--dim); margin-right: 6px; }
+  /* `display` beats the `hidden` attribute, so a hidden pane needs this or it
+     stays on screen underneath the other one. */
+  [hidden] { display: none !important; }
+  main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    gap: 1px;
+    background: var(--edge);
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  }
+  section {
+    background: var(--bg);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .arm-head {
+    padding: 8px 14px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--edge);
+  }
+  .arm-name { font-weight: 700; font-size: 14px; }
+  .arm-note { color: var(--dim); font-size: 12px; }
+  .verdict { font-weight: 700; font-size: 13px; letter-spacing: .04em; }
+  .verdict.pass { color: var(--pass); }
+  .verdict.fail { color: var(--fail); }
+  .verdict.factloss { color: var(--hit-edge); border: 1px solid var(--hit-edge);
+    border-radius: 4px; padding: 0 5px; cursor: help; }
+  /* The LLM judge's verdict-affecting badge. A different colour from factloss
+     and from PASS/FAIL, so a reader tells at a glance which checker spoke. */
+  .verdict.semanticbad { color: var(--sem); border: 1px solid var(--sem);
+    border-radius: 4px; padding: 0 5px; cursor: help; }
+  /* UNJUDGED: not a finding, an absence of one. Solid background (not just a
+     border, like factloss/semanticbad) so it reads as its own state even at a
+     glance, and cannot be skimmed past as "just another badge next to PASS". */
+  .verdict.unjudged { color: var(--unjudged); background: var(--unjudged-bg);
+    border: 1px solid var(--unjudged); border-radius: 4px; padding: 0 5px;
+    cursor: help; }
+  .unjudged-note { color: var(--unjudged); }
+  /* SAMPLED_OUT shares the unjudged colour family — neither is a checked
+     result — but stays a border-only badge (like factloss/semanticbad, not
+     the solid unjudged background) so a deliberate sampling decision does
+     not read with the same visual weight as a failed judge call. */
+  .verdict.sampled-out { color: var(--unjudged); border: 1px solid var(--unjudged);
+    border-radius: 4px; padding: 0 5px; cursor: help; }
+  .sampled-out-note { color: var(--unjudged); }
+  /* ANCHOR/ROTATING tag which documents the judge covered this run. Neutral
+     (--dim), not a verdict colour, because being an anchor says nothing about
+     whether the document passed. */
+  .verdict.anchor, .verdict.rotating { color: var(--dim);
+    border: 1px solid var(--edge); border-radius: 4px; padding: 0 5px;
+    cursor: help; font-size: 11px; }
+  .body { overflow: auto; padding: 12px 14px; }
+  pre.text {
+    margin: 0 0 14px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  mark.hit {
+    background: var(--hit-bg);
+    color: var(--ink);
+    border-bottom: 2px solid var(--hit-edge);
+    border-radius: 2px;
+    padding: 0 1px;
+    cursor: pointer;
+  }
+  mark.hit.on { outline: 3px solid var(--focus); outline-offset: 1px; }
+  .offenders { border-top: 1px solid var(--edge); padding-top: 10px; margin-top: 14px; }
+  .offenders h3 { font-size: 12px; margin: 0 0 8px; color: var(--dim);
+                  text-transform: uppercase; letter-spacing: .08em; }
+  /* The judge's section reads as a different instrument from "Offenders": a
+     purple accent border instead of the default panel, so origin is visible
+     without reading the heading. */
+  .offenders.semantic { border-top: 2px solid var(--sem); }
+  .offenders.semantic h3 { color: var(--sem); }
+  li.sem { border-left: 3px solid var(--sem-rej); padding-left: 8px; }
+  li.sem-confirmed { border-left-color: var(--sem); background: var(--sem-bg); }
+  /* OVERLAP: every judge that ran confirmed this rule independently — the
+     trustworthy set from a multi-judge run. Same purple as confirmed, but a
+     thicker border, since this is a STRONGER form of confirmed, not a
+     different colour axis. */
+  li.sem-overlap { border-left: 5px solid var(--sem); background: var(--sem-bg); }
+  li.sem-low-agreement { border-left-color: var(--sem-low); }
+  .stat { font: 11px ui-monospace, Menlo, monospace; padding: 0 5px;
+          border-radius: 3px; margin-left: 6px; text-transform: uppercase;
+          letter-spacing: .04em; }
+  .stat-confirmed { color: var(--sem); background: var(--sem-bg); font-weight: 700; }
+  .stat-overlap { color: var(--bg); background: var(--sem); font-weight: 700; }
+  .stat-low-agreement { color: var(--sem-low); background: var(--sem-low-bg); }
+  .stat-rejected { color: var(--sem-rej); background: var(--sem-rej-bg); }
+  .judge-tag { font-size: 11px; color: var(--dim); font-style: italic; }
+  .notfound { color: var(--fail); font-size: 11px; font-style: italic; }
+  ol { margin: 0; padding-left: 0; list-style: none; }
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 10px;
+    padding: 5px 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  li:hover, li.on { background: var(--panel); }
+  .where {
+    font: 12.5px ui-monospace, Menlo, monospace;
+    color: var(--dim);
+    white-space: nowrap;
+  }
+  .rule { font-weight: 700; font-size: 12.5px; }
+  /* A finding's own weight (spec/PSTE-1.md §15), subtle on purpose: next to the
+     rule id, never a column of its own, so it does not crowd the quote. */
+  .wt { font: 11px ui-monospace, Menlo, monospace; color: var(--dim);
+        font-weight: 400; cursor: help; }
+  .wt-total { font: 12px ui-monospace, Menlo, monospace; color: var(--dim);
+              font-weight: 400; text-transform: none; letter-spacing: 0;
+              cursor: help; }
+  .msg { grid-column: 2; color: var(--dim); }
+  .none { color: var(--dim); font-style: italic; }
+  .prov {
+    margin-left: auto;
+    font: 12.5px ui-monospace, Menlo, monospace;
+  }
+  .ask {
+    padding: 8px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--edge);
+    color: var(--dim);
+    font-size: 13px;
+  }
+  .ask b { color: var(--ink); font-weight: 700; }
+  .ask:empty { display: none; }
+  .ask a { color: var(--focus); }
+  .ask a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .notice { margin-top: 3px; font-size: 12px; font-style: italic; }
+  .tabs { display: flex; gap: 4px; }
+  .tab {
+    font: inherit; font-size: 13px; padding: 6px 14px; cursor: pointer;
+    background: var(--bg); color: var(--dim);
+    border: 2px solid var(--edge); border-radius: 6px;
+  }
+  .tab.on { background: var(--ink); color: var(--bg); border-color: var(--ink);
+            font-weight: 700; }
+  .pane { flex: 1; min-height: 0; overflow: auto; padding: 14px 16px; }
+  .pane[hidden] { display: none; }
+  .runbar {
+    display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: baseline;
+    padding: 9px 12px; margin-bottom: 14px;
+    background: var(--panel); border: 2px solid var(--edge); border-radius: 6px;
+    font: 12.5px ui-monospace, Menlo, monospace;
+  }
+  .runbar b { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px;
+              color: var(--dim); font-weight: 700; text-transform: uppercase;
+              letter-spacing: .06em; margin-right: 5px; }
+  table.matrix { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.matrix th, table.matrix td {
+    border: 1px solid var(--edge); padding: 5px 9px; text-align: right;
+  }
+  table.matrix th { background: var(--panel); font-size: 12px;
+                    text-transform: uppercase; letter-spacing: .05em; }
+  table.matrix td.doc, table.matrix th.doc { text-align: left;
+    font: 12.5px ui-monospace, Menlo, monospace; }
+  table.matrix tr:hover td { background: var(--panel); }
+  table.matrix tfoot td { font-weight: 700; background: var(--panel); }
+  .cell-pass { color: var(--pass); font-weight: 700; }
+  .cell-fail { color: var(--fail); }
+  /* UNJUDGED: a solid tinted background, unlike cell-pass/cell-fail which are
+     text colour only on the shared cell background. This cell must not be
+     skimmable as a plain pass or a plain fail from across the room. */
+  .cell-unjudged { color: var(--unjudged); background: var(--unjudged-bg);
+    font-weight: 700; }
+  .cell-sub { color: var(--dim); font-size: 11.5px; }
+  /* The share of passes that conform. Not a grade: PSTE-1 §5.2 permits this
+     harness page to show a rate, but a conformance count still is not quality,
+     so it sits beside the work list rather than standing alone. */
+  .rate { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .runs { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums;
+          margin-top: 1px; }
+  .best { outline: 2px solid var(--pass); outline-offset: -2px; }
+  h2 { font-size: 14px; margin: 22px 0 8px; letter-spacing: .01em; }
+  h2:first-child { margin-top: 0; }
+  .hint { color: var(--dim); font-size: 12.5px; margin: 0 0 10px; }
+  .bar { display: inline-block; height: 9px; background: var(--fail);
+         border-radius: 2px; vertical-align: middle; min-width: 1px; }
+  .lic {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 5px;
+    border: 1px solid var(--edge);
+    border-radius: 3px;
+    font: 11px ui-monospace, Menlo, monospace;
+  }
+  .lic.share { border-color: var(--hit-edge); background: var(--hit-bg);
+               color: var(--ink); font-weight: 700; }
+  footer {
+    padding: 9px 16px;
+    border-top: 2px solid var(--edge);
+    background: var(--panel);
+    color: var(--dim);
+    font-size: 12.5px;
+  }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .body { max-height: 60vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>PSTE eval</h1>
+  <div class="tabs" role="tablist">
+    <button id="tab-overview" class="tab on" role="tab">Overview</button>
+    <button id="tab-documents" class="tab" role="tab">Documents</button>
+  </div>
+  <div id="docpick" hidden><label for="pick">Document</label><select id="pick"></select></div>
+  <div class="meta" id="meta"></div>
+  <div class="meta prov" id="prov"></div>
+</header>
+<div class="ask" id="ask"></div>
+<section id="overview" class="pane"></section>
+<main id="grid"></main>
+<footer>__DISCLAIMER__</footer>
+<script>
+const DATA = __DATA__;
+const pick = document.getElementById("pick");
+const grid = document.getElementById("grid");
+const meta = document.getElementById("meta");
+const prov = document.getElementById("prov");
+const ask = document.getElementById("ask");
+const overviewPane = document.getElementById("overview");
+const docpick = document.getElementById("docpick");
+const tabOverview = document.getElementById("tab-overview");
+const tabDocuments = document.getElementById("tab-documents");
+const ids = Object.keys(DATA.results);
+
+prov.textContent = DATA.git && DATA.git.short
+  ? DATA.source + "  \u2014  commit " + DATA.git.short
+      + " on " + (DATA.git.branch || "?")
+  : DATA.source + "  \u2014  no provenance recorded";
+
+for (const id of ids) {
+  const o = document.createElement("option");
+  o.value = id;
+  o.textContent = id + "  (" + DATA.results[id].category + ")";
+  pick.append(o);
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+// A rewrite of a share-alike document carries that licence, and not the licence of
+// this repository. Mark the column, so nobody reuses the text under the wrong terms.
+function licenceTag(entry, arm) {
+  const lic = arm === "source" ? entry.licence : entry.derivedLicence;
+  if (!lic) return "";
+  const share = /-SA-/.test(lic);
+  return ' <span class="lic' + (share ? " share" : "") + '">' + esc(lic) + "</span>";
+}
+
+const STATUS_LABEL = {
+  confirmed: "confirmed", "low-agreement": "low agreement", rejected: "rejected",
+  // OVERLAP: two or more independent judges both confirmed this rule — a
+  // stronger claim than one judge confirming it on repeat passes.
+  overlap: "overlap",
+};
+
+// The LLM judge (semantic_lint.py) is a different checker from pste_lint.py: it
+// reads for MEANING, not a pattern, and it disagrees with itself between runs.
+// Its section is styled apart from "Offenders" — a different accent colour and
+// its own heading — so a reader never mistakes a judge row for a mechanical one.
+// Every row shows: rule, quote, the judge's reason, and its agreement (n/N).
+// Only "confirmed" rows fail the verdict; "low-agreement" and "rejected" are
+// shown too, unfiltered, because they are the evidence the judge is working
+// (semantic_lint.py: "report all of this so us humans understand... we also
+// need reasons").
+function semanticSectionHtml(a) {
+  if (a.unjudged) {
+    return `<div class="offenders semantic unjudged"><h3>Judge findings (semantic_lint.py)</h3>
+        <p class="hint unjudged-note">UNJUDGED. The judge call for this cell failed and
+        returned no result — an API limit is the usual cause. This is not "no
+        findings": 52 of the standard's 77 rules need a judge, and none of them
+        were checked here. Re-run the judge for this cell before treating it as
+        clean.</p>
+      </div>`;
+  }
+  const rows = a.semantic || [];
+  if (!rows.length) return "";
+  // MULTI-JUDGE: a row from report.py's judge_overlap carries `judge` (which
+  // model produced it) and, for a confirmed/overlap row, `judges` (every
+  // judge that confirmed this rule). Single-judge rows carry neither, and
+  // render exactly as they always have.
+  const multiJudge = rows.some(s => s.judge);
+  const items = rows.map(s => {
+    const agree = (s.of != null) ? `${s.seenIn}/${s.of}` : "";
+    const label = s.problem || s.reason || "";
+    const quoteFlag = s.quote && !s.located
+      ? '<span class="notfound" title="the judge\'s quote was not found in the '
+        + 'text — this row may be invented">not found in text</span>' : "";
+    const judgeTag = multiJudge
+      ? `<span class="judge-tag">${esc(
+          s.status === "overlap" ? (s.judges || []).join(" + ") : (s.judge || "")
+        )}</span>` : "";
+    return `<li class="sem sem-${esc(s.status)}">
+        <span class="where">${agree}</span>
+        <span class="rule">${esc(s.rule)} <span class="stat stat-${esc(s.status)}">`
+        + `${esc(STATUS_LABEL[s.status] || s.status)}</span> ${judgeTag}</span>
+        <span class="msg">${esc(label)}
+          ${s.fix ? '<br><i>fix:</i> ' + esc(s.fix) : ""}
+          ${s.reason && s.problem ? '<br><i>because:</i> ' + esc(s.reason) : ""}
+          ${quoteFlag}
+        </span>
+      </li>`;
+  }).join("");
+  const confirmedN = rows.filter(s => s.status === "confirmed" || s.status === "overlap").length;
+  const overlapN = rows.filter(s => s.status === "overlap").length;
+  const multiHint = multiJudge
+    ? ` ${overlapN} of those are OVERLAP: every judge that ran on this text
+      confirmed it independently — the trustworthy set. The rest of the
+      confirmed rows came from only one judge.`
+    : "";
+  return `<div class="offenders semantic"><h3>Judge findings (semantic_lint.py)</h3>
+      <p class="hint">A model read this text for what a regular expression cannot
+      check. ${confirmedN} of ${rows.length} row(s) are CONFIRMED (agreement at or
+      above the gate) and count toward the verdict above; the rest are
+      low-agreement or a rule the judge actively considered and rejected — shown
+      so a person can audit the judge, not to score the text. Never a
+      measurement: two runs disagree.${multiHint}</p>
+      <ol>${items}</ol>
+    </div>`;
+}
+
+function draw(id) {
+  const entry = DATA.results[id];
+  grid.style.setProperty("--cols", DATA.arms.length);
+  meta.textContent = "level " + DATA.level + " \u2014 " + entry.category
+    + " \u2014 " + ids.length + (ids.length === 1 ? " document" : " documents");
+  // The provenance of the source travels with the text it covers. A reader must be
+  // able to reach the original, see who wrote it, and see the licence that permits
+  // the rewrite. For CC-BY the notice must also say the rewrite is a modification.
+  const bits = [];
+  if (entry.title) {
+    bits.push(entry.url
+      ? '<b><a href="' + esc(entry.url) + '" rel="noopener noreferrer" '
+        + 'target="_blank">' + esc(entry.title) + "</a></b>"
+      : "<b>" + esc(entry.title) + "</b>");
+  }
+  if (entry.author) bits.push(esc(entry.author));
+  if (entry.licence) {
+    bits.push(entry.licenceUrl
+      ? '<a href="' + esc(entry.licenceUrl) + '" rel="noopener noreferrer" '
+        + 'target="_blank">' + esc(entry.licence) + "</a>"
+      : esc(entry.licence));
+  }
+  let bar = bits.join(" \u00b7 ");
+  if (entry.attribution) {
+    bar += '<div class="notice">' + esc(entry.attribution) + "</div>";
+  }
+  if (!bar && entry.prompt) bar = "<b>Asked:</b> " + esc(entry.prompt);
+  ask.innerHTML = bar;
+  grid.innerHTML = DATA.arms.map(arm => {
+    const a = entry.arms[arm] || { missing: true };
+    if (a.missing) {
+      return `<section><div class="arm-head"><div class="arm-name">${esc(arm)}</div>
+        <div class="arm-note">${esc(DATA.armNote[arm] || "")}</div></div>
+        <div class="body"><p class="none">No output. The run failed for this arm.</p>
+        </div></section>`;
+    }
+    // UNJUDGED is its own verdict, not a FAIL among others: the judging call
+    // for this cell failed outright (an API limit, most often), so 52 of the
+    // standard's 77 rules were never checked. It must never look like PASS
+    // (a document the judge read and found clean) or an ordinary FAIL (one
+    // the judge did check and objected to).
+    const verdict = a.unjudged
+      ? '<span class="verdict unjudged" title="the judge call for this cell '
+        + 'failed and never returned a result. Mechanical and fact-loss checks '
+        + 'still ran, but 52 of the standard’s 77 rules need a judge and '
+        + 'were never checked. This is not a pass.">UNJUDGED</span>'
+      : a.pass
+        ? '<span class="verdict pass">PASS</span>'
+        : '<span class="verdict fail">FAIL</span>';
+    // Fact loss is its own indicator, apart from PASS/FAIL: PSTE-C6 fails the
+    // verdict on fact loss alone, but the owner wants a clean-but-lossy arm to
+    // read differently from a lossy-and-non-conforming one, not collapse into
+    // one FAIL. faithfulness.py finds DROPPED tokens (numbers, units,
+    // negations, obligations), not changed meaning, so this is "fact loss
+    // detected", never a guarantee that a passing arm is faithful.
+    const fidelity = a.factLoss
+      ? '<span class="verdict factloss" title="faithfulness.py: a number, unit, '
+        + 'identifier, negation, or obligation from the source is missing. '
+        + 'This detects dropped tokens, not changed meaning.">FACT LOSS</span>'
+      : "";
+    // A CONFIRMED judge finding fails the verdict the same as fact loss does.
+    // See the "Judge findings" section below for every row, including the
+    // low-agreement and rejected ones that never affect PASS/FAIL.
+    const semBadge = a.semanticConfirmed
+      ? `<span class="verdict semanticbad" title="the LLM judge (semantic_lint.py) `
+        + `confirmed ${a.semanticConfirmed} finding(s) at or above the agreement `
+        + `gate. A model judging prose is not a measurement — see the Judge `
+        + `findings section.">JUDGE ×${a.semanticConfirmed}</span>`
+      : "";
+    const list = a.findings.length
+      ? "<ol>" + a.findings.map((f, i) =>
+          `<li data-arm="${esc(arm)}" data-i="${i}">
+             <span class="where">${f.line}:${f.column}</span>
+             <span class="rule">${esc(f.rule)} <span class="wt" title="weight `
+             + `${f.weight} of 1.0 (spec/PSTE-1.md §15) — how much this `
+             + `one rule's break counts, not how bad the prose is">`
+             + `${f.weight}</span></span>
+             <span class="msg">${esc(f.message)}</span>
+           </li>`).join("") + "</ol>"
+      : '<p class="none">Nothing to fix at this level.</p>';
+    const fidelityList = a.factLoss
+      ? "<ol>" + a.fidelity.findings.filter(f => f.severity === "critical").map((f, i) =>
+          `<li><span class="rule">${esc(f.kind)}</span>
+             <span class="msg">${esc(f.message)}</span></li>`).join("") + "</ol>"
+      : "";
+    const fidelitySection = a.fidelity
+      ? `<div class="offenders"><h3>Fact loss (PSTE-A1)</h3>
+          <p class="hint">What faithfulness.py found dropped against the source. It
+          catches missing numbers, units, identifiers, negations, and obligations.
+          It does not read for changed meaning, so a clean result here is not proof
+          the rewrite is faithful.</p>
+          ${a.factLoss ? fidelityList : '<p class="none">No dropped number, unit, identifier, negation, or obligation.</p>'}
+        </div>`
+      : "";
+    const semanticSection = semanticSectionHtml(a);
+    return `<section data-arm="${esc(arm)}">
+      <div class="arm-head">
+        <div class="arm-name">${esc(arm)} &nbsp; ${verdict} ${fidelity} ${semBadge}</div>
+        <div class="arm-note">${esc(DATA.armNote[arm] || "")} &nbsp;
+          ${a.words} words &nbsp; ${a.cleanSentences.of}
+          sentence${a.cleanSentences.of === 1 ? "" : "s"}, ${a.cleanSentences.rate}%
+          clean${licenceTag(entry, arm)}</div>
+      </div>
+      <div class="body">
+        <pre class="text">${a.html}</pre>
+        <div class="offenders"><h3>Offenders
+          ${a.findings.length ? `<span class="wt-total" title="sum of every `
+            + `finding's weight below — spec/PSTE-1.md §15. Not a quality `
+            + `score: it is still a count of rule-breaking, only weighted by `
+            + `how much the standard says each broken rule costs.">`
+            + `${a.findings.length} findings, weighted ${a.weighted}</span>` : ""}
+          </h3>${list}</div>
+        ${fidelitySection}
+        ${semanticSection}
+      </div></section>`;
+  }).join("");
+}
+
+function highlight(section, index) {
+  section.querySelectorAll(".on").forEach(el => el.classList.remove("on"));
+  const m = section.querySelector('mark[data-i="' + index + '"]');
+  const li = section.querySelector('li[data-i="' + index + '"]');
+  if (li) li.classList.add("on");
+  if (m) {
+    m.classList.add("on");
+    m.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+}
+
+grid.addEventListener("click", ev => {
+  const hit = ev.target.closest("li[data-i], mark[data-i]");
+  if (!hit) return;
+  highlight(hit.closest("section"), hit.dataset.i);
+});
+
+// ---- Overview -------------------------------------------------------------
+
+function drawOverview() {
+  const o = DATA.overview, r = DATA.run, arms = DATA.arms;
+  const bits = [];
+  if (r.commit) bits.push("<b>commit</b>" + esc(r.commit)
+      + (r.branch ? " on " + esc(r.branch) : ""));
+  if (r.committed) bits.push("<b>dated</b>" + esc(r.committed));
+  bits.push("<b>documents</b>" + r.documents);
+  bits.push("<b>passes</b>" + r.passes);
+  if (r.jobs) bits.push("<b>jobs</b>" + r.jobs);
+  bits.push("<b>level</b>" + DATA.level);
+  if (r.sourceModels && r.sourceModels.length)
+    bits.push("<b>synthetic by</b>" + esc(r.sourceModels.join(", ")));
+  if (r.failures) bits.push('<b>failures</b><span class="cell-fail">'
+      + r.failures + "</span>");
+  // PER-STAGE METERING (run.py PART 1): which half of the run burned the
+  // budget. Absent on a result written before this existed.
+  if (r.stages && r.stages.generation) bits.push("<b>generation</b>"
+      + r.stages.generation.calls + " calls, " + r.stages.generation.seconds + "s");
+  if (r.stages && r.stages.judging) bits.push("<b>judging</b>"
+      + r.stages.judging.calls + " calls, " + r.stages.judging.seconds + "s");
+  // JUDGE SAMPLING (run.py PART 2): which documents were judged this run.
+  // Absent on a result written before sampling existed, or `judge_all`.
+  const js = DATA.judgeSample || {};
+  if (js.judge_all) {
+    bits.push("<b>judged</b>all documents (--judge-all)");
+  } else if (js.anchor_docs && js.anchor_docs.length) {
+    bits.push("<b>anchors</b>" + esc(js.anchor_docs.join(", ")));
+    bits.push("<b>rotating</b>" + esc((js.rotating_docs || []).join(", "))
+      + " (offset " + js.rotation_offset + ")");
+  }
+
+  // The matrix. One row per document, one column per arm.
+  const worst = Math.max(1, ...o.rows.flatMap(row =>
+    arms.map(a => (row.cells[a] || {}).findings || 0)));
+
+  let head = '<tr><th class="doc">document</th>';
+  for (const a of arms) head += "<th>" + esc(a) + "</th>";
+  head += "</tr>";
+
+  let body = "";
+  for (const row of o.rows) {
+    // Mark the arm with the fewest findings, so the eye lands on the winner.
+    const counts = arms.map(a => (row.cells[a] || {}).findings);
+    const best = Math.min(...counts.filter(n => typeof n === "number"));
+    // ANCHOR/ROTATING (run.py PART 2): which documents the judge looked at
+    // this run, and why. An anchor is judged every run, for loop-over-loop
+    // comparability; a rotating document is this run's coverage slice. A row
+    // with neither badge was sampled out — its cells below say so.
+    const sampleBadge = row.anchor
+      ? ' <span class="verdict anchor" title="judged every run, for '
+        + 'loop-over-loop comparability">ANCHOR</span>'
+      : row.rotating
+      ? ' <span class="verdict rotating" title="this run’s rotating '
+        + 'coverage slice">ROTATING</span>'
+      : "";
+    body += '<tr><td class="doc" title="' + esc(row.type) + '">'
+          + esc(row.id) + sampleBadge + "</td>";
+    for (const a of arms) {
+      const c = row.cells[a];
+      if (!c) { body += "<td>-</td>"; continue; }
+      const win = c.findings === best && arms.length > 1 ? " best" : "";
+      // Every pass, and the share of them that conform. One draw cannot separate a
+      // real change from ordinary variance, so the runs are shown beside the count.
+      // The weighted total (spec/PSTE-1.md §15) sits right beside the raw rule
+      // count: "many trivial findings" and "few serious ones" read the same in
+      // a bare count, and do not in this one.
+      let sub = c.rules + " rule" + (c.rules === 1 ? "" : "s")
+        + (c.findings ? ' <span class="wt" title="weighted total, spec/PSTE-1.md '
+          + '§15 — not a quality score, a conformance count weighted by '
+          + 'consequence">wt ' + c.weighted + '</span>' : "");
+      if (c.cleanSentences.of) {
+        sub += ' <span class="rate" title="clean sentences: the share with no '
+          + 'finding at all. PSTE counts by the sentence (N1/N2, D2), and a '
+          + 'reader meets the text one sentence at a time.">'
+          + c.cleanSentences.clean + "/" + c.cleanSentences.of + " sent "
+          + c.cleanSentences.rate + "%</span>";
+      }
+      if (c.of > 1) {
+        sub += ' <span class="rate">' + c.passed + "/" + c.of + " pass "
+             + c.rate + "%</span>"
+             + '<div class="runs">' + c.runs.join(" \u00b7 ") + "</div>";
+      }
+      // Fact loss reads apart from the conformance count: a clean-but-lossy
+      // cell (0 findings, factLoss true) must not look like a plain PASS, and
+      // a lossy-and-non-conforming cell must show both, not just one number.
+      const factTag = c.factLoss
+        ? ' <span class="verdict factloss" title="faithfulness.py: a fact from '
+          + 'the source is missing. Detects dropped tokens, not changed '
+          + 'meaning.">FACT LOSS</span>'
+        : "";
+      // A CONFIRMED judge finding (semantic_lint.py) fails the verdict the same
+      // way fact loss does. Low-agreement and rejected rows never do — they are
+      // audit material, visible only on the document view.
+      const semTag = c.semanticConfirmed
+        ? ' <span class="verdict semanticbad" title="the LLM judge confirmed '
+          + c.semanticConfirmed + ' finding(s), agreement at or above the gate. '
+          + 'See the document view for the reason behind each.">JUDGE ×'
+          + c.semanticConfirmed + '</span>'
+        : "";
+      // SAMPLED_OUT vs UNJUDGED: not selected by design reads differently
+      // from a judge call that was made and failed. Both still force
+      // pass=False (build_entry) — neither has actually been checked — but
+      // conflating "we chose not to ask" with "we asked and got nothing" is
+      // exactly the confusion this cell must not create.
+      const semSub = c.sampledOut
+        ? '<div class="cell-sub sampled-out-note">not judged this run — sampled out</div>'
+        : c.unjudged
+        ? '<div class="cell-sub unjudged-note">judge call failed — not checked</div>'
+        : c.semantic
+        ? '<div class="cell-sub">judge: ' + c.semantic + ' row'
+          + (c.semantic === 1 ? '' : 's') + (c.semanticConfirmed
+            ? ', ' + c.semanticConfirmed + ' confirmed' : '') + '</div>'
+        : "";
+      // UNJUDGED gets its own cell class and label: it must never look like a
+      // FAIL (the judge ran and objected) or a PASS (the judge ran and found
+      // nothing). `c.pass` is already False for these (build_entry forces it),
+      // this only controls how the cell reads visually. SAMPLED_OUT reuses
+      // the same class (it is still not a pass and not a fail) but its own
+      // label and tooltip, so "excluded by design" reads apart from
+      // "the judge tried and failed" at a glance.
+      const cellClass = c.unjudged ? "cell-unjudged" : (c.pass ? "cell-pass" : "cell-fail");
+      const cellLabel = c.sampledOut ? "NOT JUDGED"
+        : c.unjudged ? "UNJUDGED" : (c.pass ? "PASS" : c.findings);
+      const cellTitle = c.sampledOut
+        ? "not selected for judging this run (rotate-and-anchor sampling). "
+          + "Not a failure — a deliberate coverage decision. Not a pass either: "
+          + "this text was never checked against the semantic rules."
+        : c.unjudged
+        ? "the judge call for this cell failed and returned no result. Not a "
+          + "pass — it was never checked."
+        : "";
+      body += '<td class="' + cellClass + win + '" title="' + cellTitle + '">'
+            + cellLabel + factTag + semTag
+            + '<div class="cell-sub">' + sub + "</div>" + semSub
+            + '<div class="bar" style="width:' + (c.findings / worst * 46)
+            + 'px"></div></td>';
+    }
+    body += "</tr>";
+  }
+
+  // Real documents and synthetic ones are totalled separately, and both stay
+  // visible. Real is the headline: it is what generalises to writing this
+  // project did not itself produce. Synthetic is secondary, not hidden.
+  function totalRow(label, totals) {
+    let row = '<tr><td class="doc">' + esc(label) + "</td>";
+    for (const a of arms) {
+      const t = totals[a] || {pass:0,total:0,findings:0,weighted:0,words:0,runPass:0,runTotal:0,factLoss:0,semanticConfirmed:0,unjudged:0,sampledOut:0,sentClean:0,sentTotal:0};
+      if (!t.total) { row += "<td>-</td>"; continue; }
+      let f = t.pass + "/" + t.total + " docs";
+      if (t.sentTotal) {
+        const sentRate = Math.round(t.sentClean * 100 / t.sentTotal * 10) / 10;
+        f += '<div class="rate" title="clean sentences across every document in '
+           + 'this total — see the per-cell note for why sentences, not words, '
+           + 'words or percent.">' + t.sentClean + "/" + t.sentTotal
+           + " sent " + sentRate + "%</div>";
+      }
+      if (t.runTotal > t.total) {
+        f += '<div class="rate">' + t.runPass + "/" + t.runTotal + " runs "
+           + Math.round(t.runPass * 100 / t.runTotal) + "%</div>";
+      }
+      // Fact loss stays a separate line, not folded into `findings`: it is a
+      // different failure mode (PSTE-A1) from conformance rule counts.
+      if (t.factLoss) {
+        f += '<div class="verdict factloss" title="documents with a fact '
+           + 'faithfulness.py found dropped against the source">'
+           + t.factLoss + " fact loss</div>";
+      }
+      if (t.semanticConfirmed) {
+        f += '<div class="verdict semanticbad" title="confirmed findings from '
+           + 'the LLM judge (semantic_lint.py), agreement at or above the '
+           + 'gate">' + t.semanticConfirmed + " judge-confirmed</div>";
+      }
+      if (t.sampledOut) {
+        f += '<div class="verdict sampled-out" title="not selected for '
+           + 'judging this run (rotate-and-anchor sampling). A deliberate '
+           + 'coverage decision, not a failure — and not a pass either.">'
+           + t.sampledOut + " not judged</div>";
+      }
+      // A cell whose judge call actually failed, separate from one sampled
+      // out by design: this count excludes the sampled-out cells above.
+      const failedJudge = t.unjudged - t.sampledOut;
+      if (failedJudge > 0) {
+        f += '<div class="verdict unjudged" title="the judge call failed for '
+           + 'these cells and never returned a result. Not passes — they were '
+           + 'never checked.">' + failedJudge + " unjudged</div>";
+      }
+      const wt = t.findings
+        ? ' <span class="wt" title="weighted total, spec/PSTE-1.md §15 — a '
+          + 'conformance count weighted by consequence, not a quality '
+          + 'score">wt ' + (Math.round(t.weighted * 10) / 10) + '</span>' : "";
+      row += "<td>" + t.findings + wt + '<div class="cell-sub">' + f + "</div></td>";
+    }
+    return row + "</tr>";
+  }
+  const foot = totalRow("TOTAL (real)", o.totals)
+             + totalRow("TOTAL (synthetic)", o.totalsSynth)
+             // ANCHOR/ROTATING (run.py PART 2), independent of real/synthetic
+             // — see overview()'s docstring. This is the row that shows
+             // overfitting directly: if the anchor total's judge-confirmed
+             // count improves run over run while the rotating total does not,
+             // the skill is being tuned to the two documents graded every
+             // time and not to the standard in general.
+             + (Object.keys(o.totalsAnchor).length
+                 ? totalRow("TOTAL (judged: anchor)", o.totalsAnchor) : "")
+             + (Object.keys(o.totalsRotating).length
+                 ? totalRow("TOTAL (judged: rotating)", o.totalsRotating) : "");
+
+  // The work list: which rules the arm under test still breaks.
+  let rules = "";
+  if (o.rules.length) {
+    rules = '<h2>What the <code>' + esc(o.target)
+          + "</code> arm still breaks</h2>"
+          + '<p class="hint">Ranked by how often the arm under test breaks each '
+          + "rule. The rule at the top is where the next edit to the skill "
+          + "belongs. This is a work list, and not a score.</p>"
+          + '<table class="matrix"><tr><th class="doc">rule</th>'
+          + arms.map(a => "<th>" + esc(a) + "</th>").join("")
+          + '<th class="doc">message</th></tr>';
+    for (const rule of o.rules) {
+      rules += '<tr><td class="doc">' + esc(rule.rule) + "</td>"
+             + arms.map(a => "<td>" + (rule.counts[a] || 0) + "</td>").join("")
+             + '<td class="doc">' + esc(rule.message) + "</td></tr>";
+    }
+    rules += "</table>";
+  }
+
+  overviewPane.innerHTML =
+      '<div class="runbar">' + bits.join("") + "</div>"
+    + "<h2>Findings per document</h2>"
+    + '<p class="hint">A document passes only when it has no findings and no fact '
+    + "loss, so the count and the number of distinct rules say more than the "
+    + "verdict. “wt” is the weighted total (spec/PSTE-1.md §15): every "
+    + "finding already carries a weight from 0 to 1, a dropped fact (1.0) counts "
+    + "for more than a missing hyphen (0.1), and this sums what each rule "
+    + "actually costs instead of counting every rule the same. It is still a "
+    + "conformance number, not a quality score: it says how much rule-breaking, "
+    + "weighted by what the standard says matters, and nothing about whether the "
+    + "prose reads well. “sent” is the share of sentences with no "
+    + "finding at all — the unit PSTE itself counts by (N1/N2's word "
+    + "limits, D2's six-sentence cap) and the one a reader meets one at a time; "
+    + "a per-100-words rate would be just as easy to compute and have no such "
+    + "basis in the standard. FACT LOSS marks a cell where faithfulness.py found "
+    + "a number, unit, identifier, negation, or obligation missing against the "
+    + "source (PSTE-A1) — that check catches dropped tokens, not changed "
+    + "meaning, so its absence is not proof the rewrite is faithful. The green "
+    + "outline marks the arm with the fewest findings.</p>"
+    + '<table class="matrix">' + head + body
+    + "<tfoot>" + foot + "</tfoot></table>"
+    + rules;
+}
+
+// ---- Tabs -----------------------------------------------------------------
+
+function show(which) {
+  const isOverview = which === "overview";
+  overviewPane.hidden = !isOverview;
+  grid.hidden = isOverview;
+  ask.hidden = isOverview;
+  docpick.hidden = isOverview;
+  tabOverview.classList.toggle("on", isOverview);
+  tabDocuments.classList.toggle("on", !isOverview);
+  meta.textContent = isOverview
+    ? DATA.overview.rows.length + " documents, level " + DATA.level
+    : meta.textContent;
+  if (!isOverview) draw(pick.value);
+}
+
+tabOverview.addEventListener("click", () => show("overview"));
+tabDocuments.addEventListener("click", () => show("documents"));
+
+pick.addEventListener("change", () => draw(pick.value));
+drawOverview();
+draw(ids[0]);
+show("overview");
+</script>
+</body>
+</html>

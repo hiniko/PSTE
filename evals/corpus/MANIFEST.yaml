@@ -1,0 +1,201 @@
+# The eval corpus.
+#
+# Every document here is a REAL document, written by a person, under a licence that
+# permits redistribution and modification. Each entry records where it came from, so
+# a reader can check any of it, and so the licence obligation stays attached to the
+# file it belongs to.
+#
+# WHY REAL DOCUMENTS
+#
+# The eval asks whether the skill makes a document easier to read. That question
+# needs a document. An earlier version of this eval asked a model to WRITE a runbook
+# in each arm, and then compared the three. That measured nothing: each arm invented
+# different content, so content and form moved together and neither could be
+# isolated. It also left `faithfulness.py` with no source to compare a rewrite
+# against, which is the one check that guards rule PSTE-A1.
+#
+# Now every arm rewrites the SAME committed document, so only the form changes.
+#
+# RULES FOR ADDING A DOCUMENT
+#
+# 1. The licence MUST permit redistribution and modification. Allowed: CC0, public
+#    domain, MIT, Apache-2.0, BSD, CC-BY-4.0. Nothing else. A document under a
+#    no-derivatives or non-commercial licence cannot be rewritten here at all.
+# 2. Record the URL, the author or project, the licence, and the date of retrieval.
+# 3. Record the sha256 of the file as committed. `fetch.py --check` verifies it, so
+#    an edit to a source document cannot pass unnoticed.
+# 4. A rewrite is a MODIFICATION. For CC-BY, the eval output must say so, and
+#    `report.py` prints the notice beside the text.
+# 5. Keep the document whole where possible. An excerpt must say what it cut.
+#
+# DO NOT add a document that this project could not lawfully republish. The standard
+# in `spec/` keeps no copy of restricted text, and the corpus holds to the same line.
+
+# Each entry has this shape. Nothing is optional.
+#
+# - id: runbook-postgres-failover      # the file is <id>.md
+#   type: runbook                      # matches the skill's artifact types
+#   title: "Postgres failover procedure"
+#   url: https://example.org/docs/failover.md
+#   author: "Example Project contributors"
+#   licence: Apache-2.0
+#   retrieved: 2026-08-03
+#   sha256: <64 hex characters>
+#   words: 812
+#   excerpt: false                     # true means the file is not the whole document
+#   note: "what was cut, when excerpt is true"
+
+version: 1
+
+documents:
+  - id: migration-django-upgrade
+    type: "migration guide"
+    title: "How to upgrade Django to a newer version"
+    url: https://raw.githubusercontent.com/django/django/main/docs/howto/upgrade-version.txt
+    author: "Django Software Foundation and individual contributors"
+    licence: BSD-3-Clause
+    retrieved: 2026-08-03
+    sha256: de80f39ffa878b78b33267383e076f10339648cc718be18d366c5b880dc18763
+    words: 806
+    excerpt: false
+    note: "reStructuredText source, with its markup. Real documentation carries
+      markup, and a rewrite has to cope with it."
+  - id: postmortem-chia-mempool-fastforward
+    type: "incident report"
+    title: "Block creation impacted due to mempool issues"
+    url: https://raw.githubusercontent.com/Chia-Network/post-mortem/main/2025-02/2025-02-25-block_production_impact_due_FastForward_mempool_issues.md
+    author: "Chia Network Inc."
+    licence: Apache-2.0
+    retrieved: 2026-08-03
+    sha256: 7693635e8f45db9af2647fd2812fef3c35657d73888cbdee41da05aab7ea1439
+    words: 934
+    excerpt: false
+  - id: postmortem-chia-clvm-cost
+    type: "incident report"
+    title: "Unbound CLVM cost restriction on mempool"
+    url: https://raw.githubusercontent.com/Chia-Network/post-mortem/main/2023-07/2023-07-21-unbound-CLVM-cost-restriction-on-mempool.md
+    author: "Chia Network Inc."
+    licence: Apache-2.0
+    retrieved: 2026-08-03
+    sha256: f801d42c88fd60e21361980f8673d5f00b01a89ed1b1ec31aa7b438d204cdd4b
+    words: 410
+    excerpt: false
+  - id: runbook-etcd-restore
+    type: runbook
+    title: "Restoring, upgrading, and maintaining an etcd cluster"
+    url: https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/tasks/administer-cluster/configure-upgrade-etcd.md
+    author: "The Kubernetes Authors"
+    licence: CC-BY-4.0
+    retrieved: 2026-08-03
+    sha256: cbda27cabca022879d52d6a85eb4c63e5f8b362233fffeac5c23826a6b08a564
+    words: 502
+    excerpt: true
+    note: "removed front matter, overview, 25 template calls; kept the sections from 'Restoring an etcd cluster'"
+  - id: runbook-cassandra-repair
+    type: runbook
+    title: "Repair"
+    url: https://raw.githubusercontent.com/apache/cassandra/trunk/doc/modules/cassandra/pages/managing/operating/repair.adoc
+    author: "The Apache Cassandra project"
+    licence: Apache-2.0
+    retrieved: 2026-08-03
+    sha256: 1ec0529e6970a83909a09a94983ddc421ddbb9c36e869d48f00788b4b1e6375c
+    words: 400
+    excerpt: true
+    note: "kept the sections from 'Incremental and Full Repairs' up to 'Full Repair Example'"
+  - id: howto-k8s-debug-pods
+    type: documentation
+    title: "Debug Pods"
+    url: https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/tasks/debug/debug-application/debug-pods.md
+    author: "The Kubernetes Authors"
+    licence: CC-BY-4.0
+    retrieved: 2026-08-03
+    sha256: b259c6f2b8bc2cea2b3239ddf3b5ce928f987fcaed3a655af5343aa926e3251c
+    words: 843
+    excerpt: true
+    note: "kept the sections from 'Debugging Pods' up to 'Debugging Replication Controllers'"
+  - id: troubleshoot-etcd-failures
+    type: documentation
+    title: "etcd failure modes"
+    url: https://raw.githubusercontent.com/etcd-io/website/main/content/en/docs/v3.5/op-guide/failures.md
+    author: "The etcd Authors"
+    licence: CC-BY-4.0
+    retrieved: 2026-08-03
+    sha256: 736c04841c747790950bbb7de8dbd2e65326e0408ff6b6df2818b331a5639dd9
+    words: 659
+    excerpt: false
+  - id: migration-etcd-3-5
+    type: "migration guide"
+    title: "Upgrade etcd from 3.4 to 3.5"
+    url: https://raw.githubusercontent.com/etcd-io/website/main/content/en/docs/v3.5/upgrades/upgrade_3_5.md
+    author: "The etcd Authors"
+    licence: CC-BY-4.0
+    retrieved: 2026-08-03
+    sha256: 119fbcc48751fb3c687aa95c5a2c71895b53f089d4abf53a37f82b7e2e706676
+    words: 401
+    excerpt: true
+    note: "kept the sections from 'Server upgrade checklists' up to 'Upgrade procedure'"
+  - id: troubleshoot-gopls
+    type: documentation
+    title: "Gopls: Troubleshooting"
+    url: https://raw.githubusercontent.com/golang/tools/master/gopls/doc/troubleshooting.md
+    author: "The Go Authors"
+    licence: BSD-3-Clause
+    retrieved: 2026-08-03
+    sha256: 554e50d9ff9b0b580043edf037e1b91c3d87fdc4d22820b45a5525814609c939
+    words: 663
+    excerpt: false
+  - id: synth-caddy-automatic-https
+    type: documentation
+    title: "Automatic https in the caddy web server"
+    url: "generated by evals/corpus_generate.py --topics"
+    author: "claude-sonnet-5, writing an independent documentation page"
+    licence: CC0-1.0
+    retrieved: 2026-09-11
+    sha256: ad6bb2e38098c12fbf481190dedf21b9a1f00ecfecf603069bf0188b22ed794c
+    words: 2058
+    excerpt: false
+    note: "Synthetic. An unconstrained model answer, grounded in a fetch of https://raw.githubusercontent.com/caddyserver/website/master/src/docs/markdown/automatic-https.md (upstream licence Apache-2.0, not propagated here) and written as an independent treatment, not a paraphrase. The prompt is in the front matter."
+  - id: synth-borg-quickstart
+    type: documentation
+    title: "The backup and restore quickstart workflow in borgbackup"
+    url: "generated by evals/corpus_generate.py --topics"
+    author: "claude-sonnet-5, writing an independent documentation page"
+    licence: CC0-1.0
+    retrieved: 2026-09-11
+    sha256: 3d81c1287908db63e61422445d4f825a4b77848556b4252df82949468389f832
+    words: 1287
+    excerpt: false
+    note: "Synthetic. An unconstrained model answer, grounded in a fetch of https://raw.githubusercontent.com/borgbackup/borg/master/docs/quickstart.rst (upstream licence BSD-3-Clause, not propagated here) and written as an independent treatment, not a paraphrase. The prompt is in the front matter."
+  - id: synth-prometheus-query-basics
+    type: documentation
+    title: "The basics of its query language, promql in prometheus"
+    url: "generated by evals/corpus_generate.py --topics"
+    author: "claude-sonnet-5, writing an independent documentation page"
+    licence: CC0-1.0
+    retrieved: 2026-09-11
+    sha256: d16e7de5f49f554c8387ce65f35bb404d04218d892cd27f534293669ff9a874a
+    words: 1925
+    excerpt: false
+    note: "Synthetic. An unconstrained model answer, grounded in a fetch of https://raw.githubusercontent.com/prometheus/prometheus/main/docs/querying/basics.md (upstream licence Apache-2.0, not propagated here) and written as an independent treatment, not a paraphrase. The prompt is in the front matter."
+  - id: synth-ripgrep-usage
+    type: documentation
+    title: "Everyday command line usage and pattern matching in ripgrep"
+    url: "generated by evals/corpus_generate.py --topics"
+    author: "claude-sonnet-5, writing an independent documentation page"
+    licence: CC0-1.0
+    retrieved: 2026-09-11
+    sha256: 9e5b4431b9fc895fca09b6c81cd6f6061170a687a2561255938389ffb6cfb0d8
+    words: 1823
+    excerpt: false
+    note: "Synthetic. An unconstrained model answer, grounded in a fetch of https://raw.githubusercontent.com/BurntSushi/ripgrep/master/GUIDE.md (upstream licence MIT, not propagated here) and written as an independent treatment, not a paraphrase. The prompt is in the front matter."
+  - id: synth-godot-signals
+    type: documentation
+    title: "Signals, its event and callback mechanism in the godot game engine"
+    url: "generated by evals/corpus_generate.py --topics"
+    author: "claude-sonnet-5, writing an independent documentation page"
+    licence: CC0-1.0
+    retrieved: 2026-09-11
+    sha256: 6195f0c3984822405bf9f9fb88e13e3ebd1ad1ff1f8ee8dff35634ee8b237b96
+    words: 1092
+    excerpt: false
+    note: "Synthetic. An unconstrained model answer, grounded in a fetch of https://raw.githubusercontent.com/godotengine/godot-docs/master/getting_started/step_by_step/signals.rst (upstream licence MIT, not propagated here) and written as an independent treatment, not a paraphrase. The prompt is in the front matter."

@@ -1,0 +1,2574 @@
+# PSTE-1 Appendix A/C source of truth.
+#
+# Consumed by evals/pste_lint.py and lib/build_appendix.py. Edit here only.
+#
+# Each entry approves ONE word with ONE meaning and ONE part of speech, and routes
+# the synonyms a writer would otherwise reach for. `instead_of` entries become the
+# not-approved list (Appendix C).
+#
+# Scope: the synonym clusters that cause the most rotation in software prose. Not yet
+# the full vocabulary. See METHOD.md for the steps that fill the rest.
+#
+# INVARIANTS, enforced by `python3 evals/pste_lint.py --self-test`:
+#   1. Every `instead_of` target is an approved word here, or a term verb in
+#      terms.yaml. A route to a banned word tells the writer to break the rules.
+#   2. Every `example` passes the checker at level 2.
+#   3. No word is both approved and routed away. The checker has no part-of-speech
+#      tagger, so it drops such a route and defers to the approved sense.
+
+meta:
+  spec: PSTE-1
+  version: 0.1.0
+  note: >
+    Spike vocabulary. Covers the clusters that cause the most rotation in software
+    writing. Not yet the full approved list; a word absent from this file is not
+    thereby forbidden at Level 3 until the list is complete.
+
+words:
+
+  # ---- Inspection and verification -------------------------------------------
+  - word: check
+    pos: verb
+    meaning: To look at something to find out if it is correct, present, or in a given state.
+    forms: [check, checks, checked]
+    instead_of: [verify, confirm, validate, inspect, examine, audit, interrogate]
+    example: "Check that the service is running."
+    counter_example: "Verify the service status."
+    note: >
+      Keep `validate` only where it names a literal operation, such as schema
+      validation. See PSTE-V5.
+
+  - word: make sure
+    pos: verb
+    meaning: To take action so that a condition becomes true.
+    forms: [make sure, makes sure, made sure]
+    instead_of: [ensure, guarantee, assure]
+    example: "Make sure that the file exists before you read it."
+    counter_example: "Ensure the file exists prior to reading."
+
+  - word: test
+    pos: verb
+    meaning: To run a procedure that shows whether something behaves correctly.
+    forms: [test, tests, tested]
+    instead_of: [exercise, prove out, sanity-check]
+    example: "Test the parser against the sample input."
+
+  # ---- Beginning and ending ---------------------------------------------------
+  - word: start
+    pos: verb
+    meaning: To cause something to begin to run or to happen.
+    forms: [start, starts, started]
+    instead_of: [initiate, launch, commence, begin, kick off, spin up, fire up, bootstrap]
+    example: "Start the database before you run the tests."
+    counter_example: "Initiate the database, then commence testing."
+
+  - word: stop
+    pos: verb
+    meaning: To cause something that runs to end.
+    forms: [stop, stops, stopped]
+    instead_of: [terminate, halt, cease, kill, tear down, spin down, shut down]
+    example: "Stop the container."
+    note: >
+      `kill` is permitted as an identifier when it names a literal command or signal,
+      such as `kill -9`. See PSTE-S4.
+
+  - word: end
+    pos: verb
+    meaning: To come to a finish.
+    forms: [end, ends, ended]
+    instead_of: [conclude, finalize, wrap up]
+    example: "The job ends when the queue is empty."
+
+  # ---- Use, need, help --------------------------------------------------------
+  - word: use
+    pos: verb
+    meaning: To employ something for a purpose.
+    forms: [use, uses, used]
+    instead_of: [utilize, leverage, employ, harness, make use of]
+    example: "Use the cache to lower the number of requests."
+    counter_example: "Leverage the caching layer to reduce request volume."
+
+  - word: need
+    pos: verb
+    meaning: To require something as a condition.
+    forms: [need, needs, needed]
+    instead_of: [require, necessitate, mandate]
+    example: "The build needs Node 20 or later."
+
+  - word: help
+    pos: verb
+    meaning: To make something easier to do.
+    forms: [help, helps, helped]
+    instead_of: [facilitate, enable, assist, empower]
+    example: "The index helps the query return faster."
+    note: >
+      Keep `enable` where it names a literal operation, such as enabling a feature
+      flag. See PSTE-V5.
+
+  # ---- Showing and finding ----------------------------------------------------
+  - word: show
+    pos: verb
+    meaning: To make something visible to the reader or the user.
+    forms: [show, shows, showed, shown]
+    instead_of: [display, present, exhibit, surface, render, visualize]
+    example: "The dashboard shows the error rate."
+    note: "`render` is permitted as a term verb in a UI context. See Appendix B."
+
+  - word: find
+    pos: verb
+    meaning: To discover the location or the existence of something.
+    forms: [find, finds, found]
+    instead_of: [locate, discover, identify, uncover, surface]
+    example: "Find the line that sets the timeout."
+
+  - word: give
+    pos: verb
+    meaning: To supply something to someone or something.
+    forms: [give, gives, gave, given]
+    instead_of: [provide, furnish, deliver, offer up]
+    example: "The API gives the account balance in cents."
+
+  # ---- Change, add, remove ----------------------------------------------------
+  - word: change
+    pos: verb
+    meaning: To make something different.
+    forms: [change, changes, changed]
+    instead_of: [modify, alter, adjust, tweak, amend, revise]
+    example: "Change the timeout to 30 seconds."
+    note: "`amend` is permitted as an identifier in `git commit --amend`."
+
+  - word: add
+    pos: verb
+    meaning: To put something in, so that it becomes part of a larger thing.
+    forms: [add, adds, added]
+    instead_of: [introduce, incorporate, insert]
+    example: "Add the header to the request."
+    note: >
+      `append` is not collapsed. It says where: at the end. `add` does not.
+    note: "`append` and `insert` are permitted where they name a literal operation."
+
+  - word: remove
+    pos: verb
+    meaning: To take something out of a larger thing.
+    forms: [remove, removes, removed]
+    instead_of: [eliminate, strip, purge, drop, get rid of, prune]
+    example: "Remove the unused import."
+    note: >
+      Keep `delete` and `drop` where they name a literal operation, such as
+      `DROP TABLE` or a file deletion. Precision defeats consistency. See PSTE-A1.
+
+  - word: replace
+    pos: verb
+    meaning: To remove one thing and put another in its place.
+    forms: [replace, replaces, replaced]
+    instead_of: [swap out, substitute, supplant]
+    example: "Replace the expired certificate."
+
+  # ---- Causation and effect ---------------------------------------------------
+  - word: cause
+    pos: verb
+    meaning: To make something happen.
+    forms: [cause, causes, caused]
+    instead_of: [result in, lead to, give rise to, trigger]
+    example: "The missing index causes the timeout."
+    note: "`trigger` is permitted as a term noun for an event mechanism."
+
+  - word: prevent
+    pos: verb
+    meaning: To stop something from happening.
+    forms: [prevent, prevents, prevented]
+    instead_of: [preclude, avert, obviate, guard against]
+    example: "The lock prevents two writers from changing the row."
+
+  # ---- Correction -------------------------------------------------------------
+  - word: correct
+    pos: verb
+    meaning: To change something so that it becomes right.
+    forms: [correct, corrects, corrected]
+    instead_of: [rectify, remediate, address]
+    example: "Correct the path in the configuration file."
+    note: >
+      `resolve` is not collapsed. Resolving DNS and an expression resolving to a
+      value are both ordinary software senses, and neither one corrects anything.
+
+  - word: fix
+    pos: verb
+    meaning: To repair a defect.
+    forms: [fix, fixes, fixed]
+    instead_of: [patch up, sort out, take care of]
+    example: "Fix the off-by-one error in the loop."
+
+  # ---- Description adjectives -------------------------------------------------
+  - word: correct
+    pos: adjective
+    meaning: Free from error.
+    instead_of: [proper, accurate, right]
+    example: "The output is correct."
+    note: >
+      `valid` is not collapsed. A valid certificate is one that passes a check, and a
+      correct certificate is one that holds the right facts. The two differ.
+
+  - word: wrong
+    pos: adjective
+    meaning: Not correct.
+    instead_of: [erroneous, incorrect, bogus]
+    example: "The header has the wrong content type."
+    note: >
+      `invalid` is not collapsed, for the same reason as `valid`. Invalid JSON fails a
+      parser, and wrong JSON carries the wrong data.
+
+  - word: same
+    pos: adjective
+    meaning: Not different.
+    instead_of: [identical, equivalent, analogous]
+    example: "Both requests return the same result."
+
+  - word: enough
+    pos: adjective
+    meaning: As much as is necessary.
+    instead_of: [sufficient, adequate, ample]
+    example: "The pool does not have enough connections."
+
+  # ---- Time and sequence ------------------------------------------------------
+  - word: before
+    pos: preposition
+    meaning: Earlier than.
+    instead_of: [prior to, in advance of, ahead of, preceding]
+    example: "Run the migration before you deploy the service."
+    counter_example: "Prior to deployment, the migration should be run."
+
+  - word: after
+    pos: preposition
+    meaning: Later than.
+    instead_of: [subsequent to, following]
+    example: "The cache clears after the deployment completes."
+    note: >
+      Prefer `after` to `once` when the meaning is "later than": write "after the
+      deployment completes", not "once the deployment completes". `once` stays
+      approved for its other meaning, which is "one time only".
+
+  - word: once
+    pos: adverb
+    meaning: One time only.
+    instead_of: [a single time, one time]
+    example: "The client retries the request once."
+    note: >
+      Approved for the count meaning only. When the meaning is "later than", use
+      `after`. A checker cannot separate these two senses, so it stays silent on
+      `once` and leaves the choice to the writer. See PSTE-V2.
+
+  - word: then
+    pos: adverb
+    meaning: Next in a sequence.
+    instead_of: [subsequently, thereafter, afterwards]
+    example: "Stop the service. Then replace the certificate."
+
+  - word: now
+    pos: adverb
+    meaning: At the present time.
+    instead_of: [currently, presently, at this time, at the moment]
+    example: "The endpoint now returns a 410 response."
+
+  # ---- Connectives ------------------------------------------------------------
+  - word: also
+    pos: adverb
+    meaning: In addition.
+    instead_of: [additionally, furthermore, moreover, what is more]
+    example: "The script also writes a log file."
+
+  - word: but
+    pos: conjunction
+    meaning: Used to introduce something that contrasts with what came before.
+    instead_of: [however, nevertheless, nonetheless, that said, having said that]
+    example: "The test passes locally, but it fails in CI."
+
+  - word: so
+    pos: conjunction
+    meaning: For that reason.
+    instead_of: [therefore, thus, hence, consequently, accordingly]
+    example: "The token expired, so the request failed."
+
+  - word: because
+    pos: conjunction
+    meaning: For the reason that.
+    instead_of: [due to the fact that, owing to the fact that, inasmuch as, since]
+    example: "The build failed because the lockfile is out of date."
+
+  - word: about
+    pos: preposition
+    meaning: On the subject of.
+    instead_of: [regarding, concerning, with respect to, in relation to, vis-a-vis]
+    example: "The document gives information about the retry policy."
+
+  - word: to
+    pos: preposition
+    meaning: Used to show purpose.
+    instead_of: [in order to, so as to, for the purpose of]
+    example: "Run the script to rebuild the index."
+
+  - word: if
+    pos: conjunction
+    meaning: Used to introduce a condition.
+    instead_of: [in the event that, should it be the case that, in the case where]
+    example: "If the request fails, the client retries once."
+
+  # ---- Quantity ---------------------------------------------------------------
+  - word: many
+    pos: adjective
+    meaning: A large number of.
+    instead_of: [numerous, myriad, a plethora of, a multitude of, countless]
+    example: "The log contains many duplicate entries."
+
+  - word: some
+    pos: adjective
+    meaning: An unspecified number of.
+    instead_of: [a variety of, a number of, several, various]
+    example: "Some requests time out."
+
+  - word: most
+    pos: adjective
+    meaning: The largest part of.
+    instead_of: [the majority of, the bulk of]
+    example: "Most requests complete in under 50 ms."
+
+  - word: all
+    pos: adjective
+    meaning: The whole number of.
+    instead_of: [each and every, the entirety of, every single]
+    example: "All rows in the table have a null timestamp."
+
+  # ---- Nouns ------------------------------------------------------------------
+  - word: error
+    pos: noun
+    meaning: A condition in which a program fails to do what it is designed to do.
+    instead_of: [problem, anomaly, incident, hiccup]
+    example: "The error occurs when the input is empty."
+    note: >
+      `issue` is not collapsed. A tracker issue and issuing a certificate are both
+      ordinary software senses, and neither one is an error.
+    note: >
+      Prefer the specific noun where one exists. Write "the timeout" or "the 404
+      response" rather than "the error". See PSTE-R5.
+
+  - word: defect
+    pos: noun
+    meaning: A fault in software that causes wrong behavior.
+    instead_of: [gremlin, glitch]
+    example: "The defect affects every release after 2.1."
+    note: >
+      `bug` is not collapsed. Every tracker, changelog and release note in software
+      calls it a bug, and a reader who knows the word `defect` knows that one too.
+    note: "`bug` is permitted in T4 repository text where the project uses it."
+
+  - word: change
+    pos: noun
+    meaning: A difference made to something.
+    instead_of: [modification, alteration, delta, diff]
+    example: "The change adds two fields to the response."
+    note: "`diff` is permitted as a term noun for the literal output of a diff tool."
+
+  - word: step
+    pos: noun
+    meaning: One action in a procedure.
+    instead_of: [stage, phase]
+    example: "Step 3 fails when the directory does not exist."
+
+  - word: result
+    pos: noun
+    meaning: What something produces or causes.
+    instead_of: [outcome, upshot, output]
+    example: "The result is a list of matching records."
+    note: "`output` is permitted as a term noun for what a program writes."
+
+  - word: reason
+    pos: noun
+    meaning: The cause of something.
+    instead_of: [rationale, justification, root cause]
+    example: "The reason for the failure is a missing environment variable."
+
+  # ---- Permission and requests -------------------------------------------------
+  - word: allow
+    pos: verb
+    meaning: To permit something to happen.
+    forms: [allow, allows, allowed]
+    instead_of: [permit, authorize, sanction, greenlight]
+    example: "The policy allows read access to the folder."
+    note: "`permit` is not this sense; see `permit` as a noun for a literal license."
+
+  - word: ask
+    pos: verb
+    meaning: To put a question or a request to someone.
+    forms: [ask, asks, asked]
+    instead_of: [query, inquire, solicit]
+    example: "The client asks the server for the account balance."
+    note: >
+      `query` is permitted as a term noun for a database query. `request` as a verb
+      is not approved separately; use `ask`. `request` stays approved as a noun,
+      below, for the message itself; the verb and noun senses do not conflict.
+
+  - word: want
+    pos: verb
+    meaning: To have a wish for something.
+    forms: [want, wants, wanted]
+    instead_of: [desire, wish for, would like]
+    example: "The user wants a list of open orders."
+
+  - word: let
+    pos: verb
+    meaning: To allow something to happen, without acting to stop it.
+    forms: [let, lets, let]
+    instead_of: [permit to, allow to pass]
+    example: "The firewall lets traffic through on port 443."
+    note: >
+      Distinct sense from `allow`: `let` names passive non-interference, `allow`
+      names an active grant of permission. See PSTE-V5 for a term where either
+      reads as jargon.
+
+  # ---- Building and making -----------------------------------------------------
+  - word: build
+    pos: verb
+    meaning: To make something by putting parts together.
+    forms: [build, builds, built]
+    instead_of: [construct, assemble, fabricate, put together]
+    example: "The pipeline builds the image after the tests pass."
+    note: "`build` is also permitted as a term noun for a compiled artifact."
+
+  - word: call
+    pos: verb
+    meaning: To cause a function or a procedure to run.
+    forms: [call, calls, called]
+    instead_of: [invoke, execute, trigger]
+    example: "The handler calls the validation function first."
+    note: >
+      `execute` stays for a literal shell command. `trigger` stays as a term noun.
+      `call` as a noun ("an API call") is not approved separately; use `request`,
+      below. The verb sense here and the routed noun sense do not conflict.
+
+  - word: choose
+    pos: verb
+    meaning: To pick one thing from a set of things.
+    forms: [choose, chooses, chose, chosen]
+    instead_of: [select, opt for, elect]
+    example: "The user chooses a plan from the pricing page."
+    note: "`select` is permitted as a literal SQL keyword."
+
+  - word: open
+    pos: verb
+    meaning: To make something ready for use or entry.
+    forms: [open, opens, opened]
+    instead_of: [initiate a connection to, establish]
+    example: "The client opens a connection to the database."
+    counter_example: "The client establishes a connection to the database."
+
+  - word: close
+    pos: verb
+    meaning: To bring something to an end so that it no longer accepts input.
+    forms: [close, closes, closed]
+    instead_of: [shut, terminate a connection, tear down]
+    example: "The server closes the connection after the last byte."
+
+  - word: connect
+    pos: verb
+    meaning: To join one thing to another so that they can exchange data.
+    forms: [connect, connects, connected]
+    instead_of: [hook up, wire up, interface with]
+    example: "The application connects to the database on startup."
+
+  - word: set
+    pos: verb
+    meaning: To give something a stated value.
+    forms: [set, sets, set]
+    instead_of: [configure to, assign, designate]
+    example: "Set the timeout to 30 seconds."
+    note: "`configure` stays as a term verb for multi-field setup. See Appendix B."
+
+  # ---- Containing, holding, keeping ---------------------------------------------
+  - word: contain
+    pos: verb
+    meaning: To have something inside.
+    forms: [contain, contains, contained]
+    instead_of: [comprise, encompass, house]
+    example: "The response contains three fields."
+
+  - word: hold
+    pos: verb
+    meaning: To keep something in a fixed place or state.
+    forms: [hold, holds, held]
+    instead_of: [retain, maintain a hold on]
+    example: "The lock holds the row until the transaction ends."
+
+  - word: keep
+    pos: verb
+    meaning: To continue to have or to do something.
+    forms: [keep, keeps, kept]
+    instead_of: [retain, preserve, sustain, maintain]
+    example: "The cache keeps the last ten results."
+    note: "`maintain` stays for maintaining a codebase, a term sense in software prose."
+
+  - word: store
+    pos: verb
+    meaning: To put something in a place so that it can be used later.
+    forms: [store, stores, stored]
+    instead_of: [persist, retain in, cache away]
+    example: "The service stores the session in memory."
+    note: "`persist` is permitted as a term verb for durable storage. See Appendix B."
+
+  - word: share
+    pos: verb
+    meaning: To give access to something to more than one person or process.
+    forms: [share, shares, shared]
+    instead_of: [distribute, disseminate]
+    example: "The team shares the report with every reviewer."
+
+  # ---- Motion and transfer -------------------------------------------------------
+  - word: move
+    pos: verb
+    meaning: To take something from one place to another.
+    forms: [move, moves, moved]
+    instead_of: [relocate, migrate, transfer]
+    example: "The script moves the log file to the archive folder."
+    note: "`migrate` stays as a term verb for a database migration. See Appendix B."
+
+  - word: put
+    pos: verb
+    meaning: To place something in a stated position.
+    forms: [put, puts, put]
+    instead_of: [position, situate]
+    example: "Put the configuration file in the root folder."
+    note: >
+      `place` stays approved as a noun, below, for a position or a location.
+      The linter matches a word by spelling only, so `place` cannot also route
+      to `put` here; a writer who means the verb "to place" writes `put`.
+
+  - word: send
+    pos: verb
+    meaning: To cause something to go from one place to another.
+    forms: [send, sends, sent]
+    instead_of: [transmit, dispatch]
+    example: "The client sends the request to the server."
+    note: "`forward` is permitted as a term verb for a mail or a network forward."
+
+  - word: receive
+    pos: verb
+    meaning: To get something that another thing sends.
+    forms: [receive, receives, received]
+    instead_of: [obtain, acquire, take receipt of]
+    example: "The server receives the request and reads the header."
+
+  - word: pass
+    pos: verb
+    meaning: To give a value from one part of a program to another.
+    forms: [pass, passes, passed]
+    instead_of: [supply to, feed into, hand off]
+    example: "The caller passes the user ID to the function."
+    note: "`hand off` is not approved; use `pass`. `pass` also names a literal test result."
+
+  - word: return
+    pos: verb
+    meaning: To give a value back to the part of a program that made the call.
+    forms: [return, returns, returned]
+    instead_of: [yield, emit, produce as output]
+    example: "The function returns the sum of the two numbers."
+    note: "`yield` stays as a literal keyword in a generator function."
+
+  - word: take
+    pos: verb
+    meaning: To accept something as an input.
+    forms: [take, takes, took, taken]
+    instead_of: [ingest, consume]
+    example: "The function takes two arguments."
+    note: >
+      `consume` stays as a term verb for reading from a message queue. `accept`
+      stays approved separately, elsewhere in this file, for the sense of an
+      input passing a validation check; the two senses do not conflict.
+
+  - word: enable
+    pos: verb
+    meaning: To put a setting or a feature into the state where it operates.
+    forms: [enable, enables, enabled]
+    instead_of: [turn on, switch on, activate, toggle on, flip on]
+    example: "Enable debug logging before you reproduce the defect."
+    note: >
+      The opposite is `disable`. Both name a literal operation on a setting or a
+      feature flag, so they stay approved even though `help` routes the figurative
+      sense of `enable` ("this enables faster queries") away. See PSTE-A1.
+
+  - word: disable
+    pos: verb
+    meaning: To put a setting or a feature into the state where it does not operate.
+    forms: [disable, disables, disabled]
+    instead_of: [turn off, switch off, deactivate, toggle off]
+    example: "Disable the cache before you measure the query time."
+    note: "`toggle` stays as a term noun for a UI control."
+
+  # ---- Following, order, sequence ------------------------------------------------
+  - word: follow
+    pos: verb
+    meaning: To come after something, or to act according to a rule.
+    forms: [follow, follows, followed]
+    instead_of: [adhere to, comply with, conform to]
+    example: "The writer follows the style guide for every commit message."
+    note: "`conform` stays where the text discusses PSTE conformance itself."
+
+  - word: order
+    pos: noun
+    meaning: The sequence in which things happen or appear.
+    instead_of: [sequence, arrangement, ordering]
+    example: "Read the steps in order."
+    note: >
+      Distinct from the commerce sense of `order`, which this entry does not cover;
+      use a term noun for a purchase order.
+
+  - word: sort
+    pos: verb
+    meaning: To arrange items by a stated rule.
+    forms: [sort, sorts, sorted]
+    instead_of: [rank, arrange]
+    example: "The report sorts the rows by date."
+    note: >
+      This is the one approved sense of arranging items. The linter matches a
+      word by spelling only, so `order` cannot also route to `sort` here; a
+      writer who means the verb "to order the rows" writes `sort`.
+
+  - word: split
+    pos: verb
+    meaning: To divide something into two or more parts.
+    forms: [split, splits, split]
+    instead_of: [divide, partition, break up]
+    example: "The script splits the file into ten-line chunks."
+    note: "`partition` stays as a term noun for a database or disk partition."
+
+  - word: count
+    pos: verb
+    meaning: To find the total number of items in a set.
+    forms: [count, counts, counted]
+    instead_of: [tally, enumerate, tabulate]
+    example: "The function counts the rows that match the filter."
+
+  - word: continue
+    pos: verb
+    meaning: To go on doing something without a stop.
+    forms: [continue, continues, continued]
+    instead_of: [carry on, proceed, resume]
+    example: "The worker continues to process the queue after the retry."
+    note: "`resume` stays as a term verb for restarting a paused job at its last point."
+
+  - word: again
+    pos: adverb
+    meaning: One more time.
+    instead_of: [anew, once more, a second time]
+    example: "Run the test again after you apply the fix."
+
+  - word: still
+    pos: adverb
+    meaning: Up to and including the present time.
+    instead_of: [nonetheless present, as of yet]
+    example: "The service still returns the old schema."
+
+  - word: yet
+    pos: adverb
+    meaning: Up to the present time, used with a negative.
+    instead_of: [as of now, thus far, to date]
+    example: "The team has not fixed the defect yet."
+
+  - word: always
+    pos: adverb
+    meaning: At every time, with no exception.
+    instead_of: [invariably, without exception, in all cases]
+    example: "The build always fails when the cache is empty."
+
+  - word: never
+    pos: adverb
+    meaning: At no time.
+    instead_of: [at no point, under no circumstances]
+    example: "The function never returns a null value."
+
+  - word: often
+    pos: adverb
+    meaning: Many times, at short intervals.
+    instead_of: [frequently, regularly, on a regular basis]
+    example: "The job runs often, once every five minutes."
+
+  - word: together
+    pos: adverb
+    meaning: With each other, in the same place or action.
+    instead_of: [jointly, in conjunction, in tandem]
+    example: "The two services run together on the same host."
+
+  - word: too
+    pos: adverb
+    meaning: In addition, as well.
+    instead_of: [as well, in addition, likewise]
+    example: "The staging server needs the patch too."
+    note: >
+      Distinct from `too` meaning excess ("too many"); that sense is not covered
+      by this entry and needs a scope qualifier per PSTE-A1.
+
+  - word: usually
+    pos: adverb
+    meaning: In most cases.
+    instead_of: [typically, generally, as a rule]
+    example: "The request usually completes in under one second."
+
+  - word: here
+    pos: adverb
+    meaning: At or to this place.
+    instead_of: [herein, at this point, in this location]
+    example: "Place the certificate here, in the config folder."
+
+  - word: there
+    pos: adverb
+    meaning: At or to that place.
+    instead_of: [thereat, in that location, at that point]
+    example: "The error starts there, on the third line of the log."
+
+  # ---- Knowledge and description ------------------------------------------------
+  - word: know
+    pos: verb
+    meaning: To have information in mind as a fact.
+    forms: [know, knows, knew, known]
+    instead_of: [be aware of, be cognizant of]
+    example: "The scheduler knows the next run time for each job."
+
+  - word: mean
+    pos: verb
+    meaning: To have a stated sense or a stated result.
+    forms: [mean, means, meant]
+    instead_of: [signify, denote, imply]
+    example: "A 404 response means the server did not find the resource."
+
+  - word: describe
+    pos: verb
+    meaning: To say what something is or how it works, in words.
+    forms: [describe, describes, described]
+    instead_of: [characterize, depict, outline]
+    example: "The comment describes the purpose of the function."
+
+  - word: expect
+    pos: verb
+    meaning: To think that something will happen, based on known facts.
+    forms: [expect, expects, expected]
+    instead_of: [anticipate, foresee]
+    example: "The test expects a 200 response from the endpoint."
+
+  - word: see
+    pos: verb
+    meaning: To become aware of something with the eyes, or to notice it in text.
+    forms: [see, sees, saw, seen]
+    instead_of: [observe, perceive]
+    example: "See the log for the full stack trace."
+    note: >
+      `note` is not collapsed. "Note that the command needs sudo" is an imperative
+      that asks a reader to take something in, not an instruction to go and see.
+    note: "`note` as a verb routes here; `note` as the T-noun label stays a term of art."
+
+  - word: read
+    pos: verb
+    meaning: To take in the meaning of written text or of stored data.
+    forms: [read, reads, read]
+    instead_of: [peruse, scan, parse through]
+    example: "The parser reads the file one line at a time."
+    note: "`parse` stays as a term verb for structured decoding. See Appendix B."
+
+  - word: list
+    pos: verb
+    meaning: To name items one after another, in order.
+    forms: [list, lists, listed]
+    instead_of: [enumerate, itemize, catalog]
+    example: "The command lists every file in the folder."
+    note: "`list` is also approved as a noun below; the two senses do not conflict."
+
+  - word: look
+    pos: verb
+    meaning: To direct the eyes toward something, or to search for it.
+    forms: [look, looks, looked]
+    instead_of: [glance, peek]
+    example: "Look at the last line of the error message."
+    note: >
+      "Look for" (search) and "look at" (inspect) are both this sense; a term
+      that needs the search meaning specifically may use `search` as a term verb.
+
+  - word: try
+    pos: verb
+    meaning: To make an effort to do something, with no guarantee of success.
+    forms: [try, tries, tried]
+    instead_of: [attempt, endeavor, endeavour]
+    example: "The client tries the request three times before it gives up."
+
+  - word: fail
+    pos: verb
+    meaning: To not succeed at doing something.
+    forms: [fail, fails, failed]
+    instead_of: [break down, malfunction, err out]
+    example: "The build fails when a test returns a nonzero exit code."
+
+  - word: work
+    pos: verb
+    meaning: To function in the way that is intended.
+    forms: [work, works, worked]
+    instead_of: [function correctly, operate as intended]
+    example: "The retry logic works after the timeout fix."
+    note: "`work` is also approved as a noun below; the verb and noun senses do not conflict."
+
+  - word: do
+    pos: verb
+    meaning: To perform an action.
+    forms: [do, does, did, done]
+    instead_of: [perform, carry out, execute an action]
+    example: "The script does the same check on every file."
+    note: >
+      `execute` stays for a literal command or process execution, a distinct
+      sense from the general "perform an action" this entry covers.
+
+  - word: go
+    pos: verb
+    meaning: To move from one place, state, or step to another.
+    forms: [go, goes, went, gone]
+    instead_of: [proceed, transition, advance]
+    example: "Control goes to the error handler when the parse fails."
+
+  - word: run
+    pos: verb
+    meaning: To cause a program or a process to operate.
+    forms: [run, runs, ran, run]
+    instead_of: [operate, execute, kick off]
+    example: "Run the test suite before you open a pull request."
+    note: "`execute` is permitted as a term verb where a runtime name uses it literally."
+
+  - word: save
+    pos: verb
+    meaning: To write data so that it is not lost when the program ends.
+    forms: [save, saves, saved]
+    instead_of: [persist, commit to disk, write out]
+    example: "The editor saves the file every thirty seconds."
+    note: "`persist` and `commit` stay as term verbs for their literal database senses."
+
+  - word: write
+    pos: verb
+    meaning: To put text or data into a file, a stream, or a record.
+    forms: [write, writes, wrote, written]
+    instead_of: [output, emit, log out]
+    example: "The process writes each line to the output file."
+
+  - word: get
+    pos: verb
+    meaning: To come to have something.
+    forms: [get, gets, got, gotten]
+    instead_of: [obtain, retrieve]
+    example: "The client gets the user record from the cache."
+    note: >
+      `fetch` is not collapsed. `git fetch` names an operation, and a reader of the
+      command reads the word.
+    note: "`fetch` and `retrieve` stay as term verbs for a literal HTTP or database call."
+
+  - word: tell
+    pos: verb
+    meaning: To give information to someone, in words.
+    forms: [tell, tells, told]
+    instead_of: [inform, notify, apprise]
+    example: "The log tells the reader which worker handled the job."
+    note: "`notify` stays as a term verb for a system notification."
+
+  - word: wait
+    pos: verb
+    meaning: To stay in place until something happens.
+    forms: [wait, waits, waited]
+    instead_of: [pause until, hold until, stand by until]
+    example: "The client waits for the server to send a response."
+
+  - word: name
+    pos: verb
+    meaning: To give a word or a label to something.
+    forms: [name, names, named]
+    instead_of: [designate, denominate, label as]
+    example: "The developer names the branch after the ticket number."
+    note: "`name` is also approved as a noun below; the two senses do not conflict."
+
+  - word: include
+    pos: verb
+    meaning: To have something as one of the parts.
+    forms: [include, includes, included]
+    instead_of: [incorporate, encompass, comprise]
+    example: "The response includes the total count of records."
+
+  # ---- Common nouns of software prose --------------------------------------------
+  - word: file
+    pos: noun
+    meaning: A named unit of stored data.
+    instead_of: [artifact, asset, resource document]
+    example: "Open the file that holds the configuration."
+    note: "`artifact` stays as a term noun for a build artifact. See Appendix B."
+
+  - word: list
+    pos: noun
+    meaning: A set of items shown or stored one after another.
+    instead_of: [collection, array of items, enumeration]
+    example: "The list contains every user in the account."
+    note: "`array` stays as a term noun for a literal data structure."
+
+  - word: name
+    pos: noun
+    meaning: The word or words used to identify something.
+    instead_of: [identifier, label, designation]
+    example: "The name of the field is `user_id`."
+    note: "`identifier` stays as a term noun for a code identifier. See PSTE-V4."
+
+  - word: number
+    pos: noun
+    meaning: A count or a value made of digits.
+    instead_of: [figure, quantity, numeral]
+    example: "The response gives the number of failed rows."
+
+  - word: part
+    pos: noun
+    meaning: One piece of a larger whole.
+    instead_of: [component, portion, segment]
+    example: "The parser is one part of the build pipeline."
+    note: "`component` stays as a term noun for a named software module."
+
+  - word: place
+    pos: noun
+    meaning: A position where something is or where something happens.
+    instead_of: [location, spot, site]
+    example: "Store the key in a safe place."
+    note: "`location` stays as a term noun for a file system path or a geographic region."
+
+  - word: point
+    pos: noun
+    meaning: A single stated position in space, in time, or in an argument.
+    instead_of: [juncture, moment in time, spot]
+    example: "The build fails at the point where the test suite starts."
+
+  - word: process
+    pos: noun
+    meaning: A running instance of a program.
+    instead_of: [job, task, routine]
+    example: "The process reads the queue and writes each item to disk."
+    note: >
+      This entry covers the operating-system sense. The general sense of "a series
+      of steps" is not approved as a separate meaning; use `step` or a numbered list.
+
+  - word: rate
+    pos: noun
+    meaning: A quantity measured against a unit of time.
+    instead_of: [frequency, throughput, pace]
+    example: "The error rate rises after the deployment."
+    note: "`throughput` stays as a term noun for a literal bandwidth measurement."
+
+  - word: record
+    pos: noun
+    meaning: One stored unit of data with named fields.
+    instead_of: [entry, row, tuple]
+    example: "The database holds one record for each user."
+    note: "`row` stays as a term noun for a literal table row."
+
+  - word: request
+    pos: noun
+    meaning: A message that asks a system to do something.
+    instead_of: [solicitation]
+    example: "The server logs every request that returns an error."
+    note: >
+      `call` and `ask` stay as approved verbs elsewhere in this file. The linter
+      matches a word by spelling only, so neither can also route to `request`
+      here; a writer who means the noun writes `request`.
+
+  - word: response
+    pos: noun
+    meaning: A message that a system sends back after a request.
+    instead_of: [reply, answer, return value]
+    example: "The response includes a status code and a body."
+
+  - word: rule
+    pos: noun
+    meaning: A statement that says what a writer or a system must do.
+    instead_of: [policy, guideline, directive]
+    example: "The rule requires a test for every new function."
+    note: "`policy` stays as a term noun for a literal access-control policy."
+
+  - word: set
+    pos: noun
+    meaning: A group of items with no stated order.
+    instead_of: [collection, aggregate]
+    example: "The query returns a set of matching rows."
+    note: >
+      `group` is not collapsed. A capture group in a regular expression and a label
+      group in Prometheus both name a thing, and neither one is a set.
+    note: "The verb sense of `set` is approved separately above; the senses do not conflict."
+
+  - word: size
+    pos: noun
+    meaning: How large or how small something is, in a stated unit.
+    instead_of: [magnitude, dimension, extent]
+    example: "The file size exceeds the upload limit."
+
+  - word: source
+    pos: noun
+    meaning: The place where something starts or where something comes from.
+    instead_of: [origin, provenance, point of origin]
+    example: "The log names the source of every request."
+    note: "`source` stays as a term noun for source code, a distinct and common software sense."
+
+  - word: space
+    pos: noun
+    meaning: An amount of storage or an area with no content.
+    instead_of: [capacity, room, storage volume]
+    example: "The disk has enough space for the backup."
+
+  - word: state
+    pos: noun
+    meaning: The condition of something at a stated time.
+    instead_of: [status, condition]
+    example: "The state of the job changes to complete."
+    note: >
+      `mode` is not collapsed. Strict mode and repokey mode name a configuration a
+      program runs in, which is not the state it is currently in.
+    note: "`status` stays as a term noun for a literal status code or status field."
+
+  - word: time
+    pos: noun
+    meaning: A measured duration, or a point on a clock.
+    instead_of: [timeframe]
+    example: "The request takes less time after the developer adds the index."
+    note: >
+      `interval` and `duration` are not collapsed. A scrape interval is how often a
+      thing happens and a range is a span between two values. `duration` is a term
+      noun in Appendix B, because PromQL names one.
+
+  - word: type
+    pos: noun
+    meaning: A category that shares stated properties.
+    instead_of: [kind, variety, category]
+    example: "The field accepts a value of type string."
+    note: "`type` also stays as a term noun for a programming-language data type."
+
+  - word: value
+    pos: noun
+    meaning: The data held by a variable, a field, or a setting.
+    instead_of: [quantity, datum, figure]
+    example: "The default value of the timeout is ten seconds."
+
+  - word: way
+    pos: noun
+    meaning: A method for doing something.
+    instead_of: [approach, manner, methodology]
+    example: "The team found a faster way to run the tests."
+
+  - word: work
+    pos: noun
+    meaning: Effort applied to reach a stated result.
+    instead_of: [effort, labor, exertion]
+    example: "The migration needs more work before it is complete."
+    note: "The verb sense of `work` is approved separately above; the senses do not conflict."
+
+  # ---- Problem routes to error/defect --------------------------------------------
+  - word: null
+    pos: none
+    meaning: null
+    instead_of: [problem]
+    example: null
+    note: >
+      Route `problem` to `error` for a runtime condition or to `defect` for a fault
+      in the software itself. See the `error` and `defect` entries above.
+
+  # ---- Adjectives -----------------------------------------------------------------
+  - word: available
+    pos: adjective
+    meaning: Ready to be used.
+    instead_of: [accessible, obtainable, at hand]
+    example: "The new version is available on the download page."
+
+  - word: bad
+    pos: adjective
+    meaning: Of low quality, or not working as intended.
+    instead_of: [poor, defective, substandard]
+    example: "The parser rejects a bad header."
+    note: >
+      Where a more specific adjective states the fault exactly (`invalid`,
+      `expired`, `missing`), a writer SHOULD use it instead. See PSTE-A1.
+
+  - word: clear
+    pos: adjective
+    meaning: Easy to understand.
+    instead_of: [lucid, transparent, unambiguous]
+    example: "The error message is clear about the missing field."
+    note: >
+      Distinct from the verb sense "to clear a cache", which is not covered by
+      this entry.
+
+  - word: complete
+    pos: adjective
+    meaning: Having every part that is needed.
+    instead_of: [comprehensive, exhaustive, thorough]
+    example: "The report is complete when every section has data."
+
+  - word: current
+    pos: adjective
+    meaning: Existing or happening at the present time.
+    instead_of: [present, existing, extant]
+    example: "The current version of the library is 4.2."
+
+  - word: different
+    pos: adjective
+    meaning: Not the same.
+    instead_of: [distinct, disparate, divergent]
+    example: "The staging database uses a different schema."
+
+  - word: easy
+    pos: adjective
+    meaning: Able to be done without much effort.
+    instead_of: [straightforward, effortless, simple to]
+    example: "The new form makes the signup step easy."
+
+  - word: empty
+    pos: adjective
+    meaning: Having nothing inside.
+    instead_of: [vacant, void, blank]
+    example: "The function returns an empty list when no rows match."
+
+  - word: full
+    pos: adjective
+    meaning: Having no more room for anything else.
+    instead_of: [at capacity, filled, replete]
+    example: "The queue is full, so the worker rejects new jobs."
+
+  - word: good
+    pos: adjective
+    meaning: Of high quality, or working as intended.
+    instead_of: [sound, solid, favorable]
+    example: "The test suite gives good coverage of the parser."
+
+  - word: hard
+    pos: adjective
+    meaning: Needing much effort or skill to do.
+    instead_of: [difficult, arduous, challenging]
+    example: "The migration is hard because the schema has no keys."
+
+  - word: high
+    pos: adjective
+    meaning: Large in amount, rate, or level.
+    instead_of: [elevated, substantial, considerable]
+    example: "The service has a high rate of timeout errors."
+
+  - word: large
+    pos: adjective
+    meaning: Big in size or in amount.
+    instead_of: [substantial, sizable, extensive]
+    example: "The export fails on a large file."
+
+  - word: last
+    pos: adjective
+    meaning: Coming after every other item in a sequence.
+    instead_of: [final, ultimate, concluding]
+    example: "The last row in the table has a null timestamp."
+
+  - word: late
+    pos: adjective
+    meaning: After the expected or the required time.
+    instead_of: [overdue, tardy, delayed]
+    example: "The report is late when the job runs past midnight."
+
+  - word: likely
+    pos: adjective
+    meaning: Probable, based on known facts.
+    instead_of: [probable, plausible, expected to occur]
+    example: "A missing index is the likely cause of the timeout."
+
+  - word: low
+    pos: adjective
+    meaning: Small in amount, rate, or level.
+    instead_of: [minimal, diminished]
+    example: "The cache has a low hit rate during the first hour."
+    note: >
+      `reduced` stays approved separately, elsewhere in this file, as the past
+      form of `reduce`; the linter matches by spelling only, so it cannot also
+      route to `low` here.
+
+  - word: main
+    pos: adjective
+    meaning: Most important, among several.
+    instead_of: [primary, principal, chief]
+    example: "The main cause of the failure is a network timeout."
+    note: "`main` also stays as a term noun for a default branch or a main function."
+
+  - word: missing
+    pos: adjective
+    meaning: Not present when it is expected.
+    instead_of: [absent, lacking, omitted]
+    example: "The request fails when the header is missing."
+
+  - word: necessary
+    pos: adjective
+    meaning: Needed in order for something to happen.
+    instead_of: [required, essential, indispensable]
+    example: "A valid token is necessary for every API call."
+
+  - word: new
+    pos: adjective
+    meaning: Made or started recently.
+    instead_of: [novel, recent, fresh]
+    example: "The new release fixes three defects."
+
+  - word: next
+    pos: adjective
+    meaning: Coming right after the current one.
+    instead_of: [subsequent, following, upcoming]
+    example: "The next step runs the test suite."
+
+  - word: old
+    pos: adjective
+    meaning: Made or started a long time ago, or not current.
+    instead_of: [outdated, legacy, obsolete]
+    example: "Delete the old backup files after the migration."
+    note: "`legacy` stays as a term noun for an inherited codebase in T4 repository text."
+
+  - word: open
+    pos: adjective
+    meaning: Not yet closed or resolved.
+    instead_of: [outstanding, unresolved, pending]
+    example: "The team has twelve open issues in the tracker."
+    note: >
+      Distinct from the verb sense of `open`, approved separately above. `pending`
+      stays as a term noun for a literal pipeline or transaction status.
+
+  - word: other
+    pos: adjective
+    meaning: Not the one already named.
+    instead_of: [remaining, alternative, additional]
+    example: "The other services still use the old schema."
+
+  - word: own
+    pos: adjective
+    meaning: Belonging to the person or thing already named.
+    instead_of: [personal, proprietary, dedicated]
+    example: "Each tenant keeps its own copy of the configuration."
+
+  - word: ready
+    pos: adjective
+    meaning: Prepared for use or for action.
+    instead_of: [prepared, primed, set to go]
+    example: "The server is ready when the health check returns 200."
+
+  - word: safe
+    pos: adjective
+    meaning: Free from risk of harm or of loss.
+    instead_of: [secure, protected, risk-free]
+    example: "The backup keeps a safe copy of the database."
+    note: "`secure` stays as a term adjective for a cryptographic or network sense."
+
+  - word: similar
+    pos: adjective
+    meaning: Alike in most ways, but not the same.
+    instead_of: [comparable, analogous, akin]
+    example: "The staging environment is similar to production."
+
+  - word: single
+    pos: adjective
+    meaning: Only one.
+    instead_of: [sole, one and only, individual]
+    example: "A single request can hold up the whole queue."
+
+  - word: slow
+    pos: adjective
+    meaning: Taking more time than is wanted.
+    instead_of: [sluggish, laggy, unresponsive]
+    example: "The query is slow when the table has no index."
+
+  - word: small
+    pos: adjective
+    meaning: Little in size or in amount.
+    instead_of: [minor, minimal, compact]
+    example: "A small change to the config fixes the timeout."
+
+  - word: useful
+    pos: adjective
+    meaning: Able to help with a stated purpose.
+    instead_of: [valuable, beneficial, worthwhile]
+    example: "The log message is useful when the build fails."
+
+  # ---- Prepositions and determiners ----------------------------------------------
+  - word: at
+    pos: preposition
+    meaning: Used to name an exact point in place or in time.
+    instead_of: [at the point of, at the location of]
+    example: "The job runs at midnight every day."
+
+  - word: between
+    pos: preposition
+    meaning: In the space or the time that separates two things.
+    instead_of: [betwixt, in the interval between]
+    example: "The proxy sits between the client and the database."
+
+  - word: during
+    pos: preposition
+    meaning: Within the time that something else happens.
+    instead_of: [in the course of, throughout the period of]
+    example: "The service logs every request during the outage."
+
+  - word: from
+    pos: preposition
+    meaning: Used to name the starting point of a movement or a range.
+    instead_of: [starting from, originating from]
+    example: "The migration copies data from the old table."
+
+  - word: into
+    pos: preposition
+    meaning: To a position inside something.
+    instead_of: [in to, inward to]
+    example: "The script writes the result into a new file."
+
+  - word: on
+    pos: preposition
+    meaning: In contact with, or connected to, a surface or a system.
+    instead_of: [atop, upon]
+    example: "The service runs on port 8080."
+
+  - word: through
+    pos: preposition
+    meaning: Moving in one side and out the other side of something.
+    instead_of: [throughout, by way of, via]
+    example: "The request passes through three services before it returns."
+    note: "`via` is permitted as a term where the routing path is the technical subject, e.g. a network route."
+
+  - word: under
+    pos: preposition
+    meaning: In a position below, or subject to, something.
+    instead_of: [beneath, subordinate to]
+    example: "The service runs under the same account as the scheduler."
+
+  - word: until
+    pos: preposition
+    meaning: Up to the time of a stated event.
+    instead_of: [up until, up to the point that]
+    example: "The worker retries until the queue is empty."
+
+  - word: with
+    pos: preposition
+    meaning: Together with, or by means of.
+    instead_of: [alongside, by dint of]
+    example: "Open the file with the correct encoding."
+
+  # ---- Not-approved: bureaucratic and corporate register --------------------------
+  #
+  # Only words with NO approved replacement belong here. A word that routes to an
+  # approved word must sit in that word's `instead_of` list instead, or the routing
+  # is lost and the checker cannot name the fix. These already route elsewhere:
+  # utilize -> use, endeavor -> try, commence -> start, terminate -> stop,
+  # ascertain -> find.
+  - word: null
+    pos: none
+    meaning: null
+    instead_of:
+      - aforementioned
+      - heretofore
+      - in conjunction with
+      - with regard to
+      - at this juncture
+      - going forward
+      - at the end of the day
+      - touch base
+      - actionable
+      - deliverable
+      - learnings
+      - ideate
+      - operationalize
+    example: null
+    note: >
+      Corporate and bureaucratic register with no approved substitute. A writer states
+      the literal meaning in plain words instead.
+
+      Three words are deliberately absent from this list because they are
+      not-approved only in a figurative sense, and PSTE-A1 protects the literal
+      operation: `bandwidth` (the network measure is a term noun), `unpack` (an
+      archive), `socialize` and `double-click` (a mouse button). A checker that
+      flagged those would report a defect where none exists.
+  # ---- More verbs of software prose ------------------------------------------
+  - word: apply
+    pos: verb
+    meaning: To put something into effect on a stated target.
+    forms: [apply, applies, applied]
+    instead_of: [enforce, impose, effectuate]
+    example: "The migration applies three changes to the schema."
+
+  - word: match
+    pos: verb
+    meaning: To be the same as, or to correspond to, a stated pattern or value.
+    forms: [match, matches, matched]
+    instead_of: [correspond to, align with, conform to]
+    example: "The regular expression matches every valid email address."
+
+  - word: create
+    pos: verb
+    meaning: To make something exist that did not exist before.
+    forms: [create, creates, created]
+    instead_of: [generate, produce, instantiate]
+    example: "The command creates a new branch from the main branch."
+    note: "`generate` stays as a term verb for automated code or file generation."
+
+  - word: copy
+    pos: verb
+    meaning: To make an identical version of something in a new place.
+    forms: [copy, copies, copied]
+    instead_of: [duplicate, replicate, clone]
+    example: "The script copies the file to the backup folder."
+    note: "`clone` stays as a term verb for a literal `git clone`."
+
+  - word: install
+    pos: verb
+    meaning: To put software on a system so that it is ready to run.
+    forms: [install, installs, installed]
+    instead_of: [set up, provision, deploy]
+    example: "Install the package before you run the script."
+    note: "`deploy` stays as a term verb for releasing a service to an environment."
+
+  - word: update
+    pos: verb
+    meaning: To change something to its newest or its correct form.
+    forms: [update, updates, updated]
+    instead_of: [refresh, sync, revise]
+    example: "The job updates the record with the latest price."
+    note: "`sync` stays as a term verb for data synchronization between two systems."
+
+  - word: join
+    pos: verb
+    meaning: To bring two or more things together as one.
+    forms: [join, joins, joined]
+    instead_of: [merge, unify]
+    example: "The query joins the orders table with the customers table."
+    note: >
+      `combine` is not collapsed. `merge` names an operation in version control and in
+      SQL, so the approved word carries a meaning the plain word does not.
+    note: "`merge` stays as a term verb for a literal `git merge`."
+
+  - word: enter
+    pos: verb
+    meaning: To put information into a system, usually with a keyboard.
+    forms: [enter, enters, entered]
+    instead_of: [input, key in]
+    example: "The user enters a password on the login page."
+    note: >
+      `key` stays approved separately, elsewhere in this file, as a noun for a
+      lookup or a cryptographic value; the linter matches by spelling only, so
+      it cannot also route to `enter` here.
+
+  - word: reject
+    pos: verb
+    meaning: To refuse to accept something.
+    forms: [reject, rejects, rejected]
+    instead_of: [decline, deny, refuse]
+    example: "The server rejects the request when the token is missing."
+
+  - word: accept
+    pos: verb
+    meaning: To agree to take or to allow something.
+    forms: [accept, accepts, accepted]
+    instead_of: [approve, admit, permit entry of]
+    example: "The form accepts a value between one and one hundred."
+
+  - word: limit
+    pos: verb
+    meaning: To set the largest amount that something may reach.
+    forms: [limit, limits, limited]
+    instead_of: [restrict, cap, throttle]
+    example: "The gateway limits each client to one hundred requests a minute."
+    note: "`throttle` stays as a term noun for a literal rate-limiting mechanism."
+
+  - word: raise
+    pos: verb
+    meaning: To make something happen, in the sense of an error or an event.
+    forms: [raise, raises, raised]
+    instead_of: [throw, fire, emit]
+    example: "The function raises an error when the input is empty."
+    note: "`throw` stays as a literal keyword in languages that use it."
+
+  - word: handle
+    pos: verb
+    meaning: To deal with something and decide what happens next.
+    forms: [handle, handles, handled]
+    instead_of: [manage, take care of]
+    example: "The middleware handles every request before it reaches the router."
+    note: >
+      `process` stays approved separately, elsewhere in this file, as a noun for
+      a running program instance; the linter matches by spelling only, so it
+      cannot also route to `handle` here.
+
+  - word: track
+    pos: verb
+    meaning: To record and follow the state of something over time.
+    forms: [track, tracks, tracked]
+    instead_of: [monitor, observe over time, keep tabs on]
+    example: "The dashboard tracks the number of active sessions."
+    note: "`monitor` stays as a term noun for a monitoring system or tool."
+
+  - word: measure
+    pos: verb
+    meaning: To find the size, the amount, or the rate of something.
+    forms: [measure, measures, measured]
+    instead_of: [gauge, quantify, assess]
+    example: "The test measures the time each request takes."
+
+  - word: reduce
+    pos: verb
+    meaning: To make something smaller in amount or in degree.
+    forms: [reduce, reduces, reduced]
+    instead_of: [decrease, diminish, lower]
+    example: "The cache reduces the number of database calls."
+
+  - word: increase
+    pos: verb
+    meaning: To make something larger in amount or in degree.
+    forms: [increase, increases, increased]
+    instead_of: [grow, boost, ramp up]
+    example: "The team increases the timeout to five seconds."
+
+  - word: depend
+    pos: verb
+    meaning: To need something else in order to work or to happen.
+    forms: [depend, depends, depended]
+    instead_of: [rely on, hinge on, be contingent on]
+    example: "The build depends on a network connection."
+
+  - word: support
+    pos: verb
+    meaning: To make something work correctly, or to allow it to happen.
+    forms: [support, supports, supported]
+    instead_of: [underpin, accommodate]
+    example: "The library supports three file formats."
+    note: >
+      `back` is not collapsed here. Every use of it in the corpus was a particle
+      or an adverb — `back up`, `back off`, `come back online`, `read data back
+      out` — and none of them means support. The financial sense that does, as
+      in backing a project, does not appear in prose about software.
+
+  - word: warn
+    pos: verb
+    meaning: To tell someone about a risk before it happens.
+    forms: [warn, warns, warned]
+    instead_of: [caution, alert, flag]
+    example: "The linter warns the writer about an unused variable."
+    note: "`alert` and `flag` stay as term nouns for a monitoring alert or a feature flag."
+
+  - word: skip
+    pos: verb
+    meaning: To not do a step that would normally happen.
+    forms: [skip, skips, skipped]
+    instead_of: [bypass, omit, forgo]
+    example: "The test suite skips the slow tests in local development."
+
+  - word: force
+    pos: verb
+    meaning: To make something happen despite resistance or a normal check.
+    forms: [force, forces, forced]
+    instead_of: [compel, coerce, override]
+    example: "The command forces the push even when the branch diverges."
+    note: "`override` stays as a term verb for replacing an inherited method or setting."
+
+  # ---- More nouns of software prose -----------------------------------------
+  - word: version
+    pos: noun
+    meaning: One stated form of something that changes over time.
+    instead_of: [release, revision, build number]
+    example: "The library moved to version 4.2 last month."
+    note: "`release` stays as a term noun for a published version with its own artifacts."
+
+  - word: field
+    pos: noun
+    meaning: One named piece of data inside a record.
+    instead_of: [attribute, property, column]
+    example: "The response has a field named `status`."
+    note: "`column` stays as a term noun for a literal database column."
+
+  - word: key
+    pos: noun
+    meaning: A value used to identify or to find a record.
+    instead_of: [identifier value, lookup value]
+    example: "The table uses the order ID as its key."
+    note: "`key` also stays as a term noun for a cryptographic or an API key."
+
+  - word: limit
+    pos: noun
+    meaning: The largest or the smallest amount that is allowed.
+    instead_of: [threshold, ceiling, cap]
+    example: "The upload fails when the file exceeds the size limit."
+
+  - word: option
+    pos: noun
+    meaning: One choice among a stated set of choices.
+    instead_of: [choice, alternative, selection]
+    example: "The form gives three options for the shipping method."
+
+  - word: goal
+    pos: noun
+    meaning: A result that a person or a team wants to reach.
+    instead_of: [objective, aim]
+    example: "The goal of the sprint is a working login page."
+    note: >
+      `target` is not collapsed. A scrape target in Prometheus and a build target
+      both name a thing, not a goal somebody holds.
+    note: "`target` stays as a term noun for a build target or a deployment target."
+
+  - word: risk
+    pos: noun
+    meaning: The chance that something bad will happen.
+    instead_of: [exposure, hazard, vulnerability]
+    example: "The plan states the risk of data loss during the migration."
+    note: "`vulnerability` stays as a term noun for a specific security defect."
+
+  - word: level
+    pos: noun
+    meaning: A stated position on a scale of amount or of importance.
+    instead_of: [tier, grade, degree]
+    example: "The log records each entry at the warning level."
+
+  - word: pattern
+    pos: noun
+    meaning: A form that repeats or that a rule describes.
+    instead_of: [motif, template, model]
+    example: "The regular expression describes a pattern for a phone number."
+    note: "`template` stays as a term noun for a literal file or a code template."
+
+  - word: cost
+    pos: noun
+    meaning: The amount of money, time, or resources that something takes.
+    instead_of: [expense, expenditure, overhead]
+    example: "The new index adds a small cost to every write."
+
+  - word: benefit
+    pos: noun
+    meaning: A good result that something brings.
+    instead_of: [advantage, upside]
+    example: "The main benefit of caching is a faster response time."
+    note: >
+      `gain` stays approved separately, elsewhere in this file, as a verb; the
+      linter matches by spelling only, so it cannot also route to `benefit` here.
+
+  - word: sign
+    pos: noun
+    meaning: Something that shows that a condition exists.
+    instead_of: [indicator, symptom, marker]
+    example: "A rising queue length is a sign of a slow worker."
+
+  # ---- More adjectives --------------------------------------------------------
+  - word: possible
+    pos: adjective
+    meaning: Able to happen or to be done.
+    instead_of: [feasible, viable, achievable]
+    example: "A same-day fix is possible if the team starts now."
+
+  - word: certain
+    pos: adjective
+    meaning: Known to be true, with no doubt.
+    instead_of: [definite, assured, guaranteed]
+    example: "The test result is certain once the suite finishes."
+    note: >
+      Distinct from the determiner sense "a certain user reported the defect",
+      which this entry does not cover.
+
+  - word: important
+    pos: adjective
+    meaning: Having a large effect on the result.
+    instead_of: [significant, critical, crucial]
+    example: "The order ID is an important field in every request."
+    note: "`critical` stays as a term adjective for a severity level in an issue tracker."
+
+  - word: common
+    pos: adjective
+    meaning: Happening often, or shared by many.
+    instead_of: [prevalent, widespread, frequent]
+    example: "A missing header is a common cause of a 400 response."
+
+  - word: rare
+    pos: adjective
+    meaning: Not happening often.
+    instead_of: [uncommon, infrequent, scarce]
+    example: "A duplicate key is a rare event in this table."
+
+  - word: strong
+    pos: adjective
+    meaning: Having a large amount of a stated quality.
+    instead_of: [robust, potent, forceful]
+    example: "The library has strong support for date parsing."
+
+  - word: weak
+    pos: adjective
+    meaning: Having a small amount of a stated quality.
+    instead_of: [fragile, feeble, insufficient]
+    example: "The old hash function gives weak protection against collisions."
+
+  - word: normal
+    pos: adjective
+    meaning: In the usual or the expected state.
+    instead_of: [standard, typical, regular]
+    example: "The service returns to normal after the restart."
+
+  - word: strange
+    pos: adjective
+    meaning: Not what a reader expects, and hard to explain.
+    instead_of: [odd, unusual, anomalous]
+    example: "The log shows a strange gap between two timestamps."
+
+  - word: exact
+    pos: adjective
+    meaning: Correct in every detail, with no error.
+    instead_of: [precise, accurate, specific]
+    example: "The report gives the exact time of the failure."
+
+  - word: whole
+    pos: adjective
+    meaning: Including every part, with nothing left out.
+    instead_of: [entire]
+    example: "The backup copies the whole database."
+    note: >
+      `complete` and `full` stay approved separately, elsewhere in this file,
+      for their own senses; the linter matches by spelling only, so neither can
+      also route to `whole` here.
+
+  - word: extra
+    pos: adjective
+    meaning: More than the usual or the expected amount.
+    instead_of: [additional, supplementary, surplus]
+    example: "The plan gives extra storage for a higher fee."
+
+  - word: separate
+    pos: adjective
+    meaning: Not joined to, or not part of, something else.
+    instead_of: [distinct, discrete, standalone]
+    example: "The team keeps the test database on a separate server."
+
+  - word: direct
+    pos: adjective
+    meaning: Going straight from one point to another, with no step between.
+    instead_of: [immediate, unmediated, straight]
+    example: "The service has a direct connection to the database."
+
+  - word: public
+    pos: adjective
+    meaning: Open to any user, with no restriction.
+    instead_of: [open to all, unrestricted]
+    example: "The endpoint is public and needs no authentication."
+    note: "`private` is the natural counterpart and is covered by the same pattern; no separate entry is needed because it is unambiguous plain English."
+
+  # ---- More adverbs and connectives -------------------------------------------
+  - word: instead
+    pos: adverb
+    meaning: In place of what was first named.
+    instead_of: [in its place, rather]
+    example: "The client sends a token instead of a password."
+
+  - word: almost
+    pos: adverb
+    meaning: Very close to, but not completely.
+    instead_of: [nearly, virtually, practically]
+    example: "The migration is almost complete after the last table."
+
+  - word: even
+    pos: adverb
+    meaning: Used to show that something is surprising or extreme.
+    instead_of: [even so, still yet]
+    example: "The service stays up even when the database restarts."
+
+  - word: only
+    pos: adverb
+    meaning: No more than, and no other than, what is named.
+    instead_of: [solely, merely, exclusively]
+    example: "The endpoint accepts only a JSON body."
+
+  - word: exactly
+    pos: adverb
+    meaning: In a precise and correct way, with no difference.
+    instead_of: [precisely, just, to the letter]
+    example: "The test checks that the output matches exactly."
+
+  - word: directly
+    pos: adverb
+    meaning: With no step or no other thing between.
+    instead_of: [straightaway, immediately upon, forthwith]
+    example: "The client connects directly to the database."
+
+  - word: recently
+    pos: adverb
+    meaning: In a time not long before the present.
+    instead_of: [lately, of late, in recent times]
+    example: "The team recently added a retry to the client."
+
+  - word: soon
+    pos: adverb
+    meaning: In a short time from now.
+    instead_of: [shortly, in the near future, before long]
+    example: "The job runs soon after the file arrives."
+
+  - word: nearby
+    pos: adverb
+    meaning: Close to a stated place.
+    instead_of: [close by, in proximity]
+    example: "The service reads from the nearest nearby cache."
+
+  # ---- More prepositions -------------------------------------------------------
+  - word: without
+    pos: preposition
+    meaning: Not having something.
+    instead_of: [in the absence of, lacking]
+    example: "The form fails without a valid email address."
+
+  - word: over
+    pos: preposition
+    meaning: Above, across, or more than a stated amount.
+    instead_of: [in excess of, above and beyond]
+    example: "The job fails when the file is over one gigabyte."
+
+  - word: against
+    pos: preposition
+    meaning: In contact with, or in opposition to, something.
+    instead_of: [versus, counter to]
+    example: "The test checks the output against the expected value."
+
+  - word: within
+    pos: preposition
+    meaning: Inside a stated space, time, or limit.
+    instead_of: [inside of, in the bounds of]
+    example: "The server must respond within five seconds."
+
+  - word: across
+    pos: preposition
+    meaning: From one side of something to the other.
+    instead_of: [throughout, spanning]
+    example: "The change applies across every environment."
+
+  - word: per
+    pos: preposition
+    meaning: For each one of a stated unit.
+    instead_of: [for each, per unit of]
+    example: "The plan allows one hundred requests per minute."
+
+  # ---- Final batch: paths, access, layout -------------------------------------
+  - word: path
+    pos: noun
+    meaning: The route to a file or to a resource, given as a string.
+    instead_of: [route, filepath, pathname]
+    example: "The config sets the path to the log file."
+    note: "`route` stays as a term noun for a network or an API route."
+
+  - word: access
+    pos: noun
+    meaning: The right or the ability to reach or to use something.
+    instead_of: [entry, admittance, entree]
+    example: "The policy gives read access to every member of the team."
+
+  - word: link
+    pos: noun
+    meaning: A connection between two things, or a reference from one to another.
+    instead_of: [pointer, cross-reference]
+    example: "The report has a link to the full log file."
+    note: >
+      `reference` is not collapsed. A reference to an object is not a link, and the
+      word names a thing a program holds rather than a place a reader can follow.
+    note: "`pointer` stays as a term noun for a literal memory address."
+
+  - word: layer
+    pos: noun
+    meaning: One level in a system built from several levels.
+    instead_of: [tier, stratum, level of abstraction]
+    example: "The cache sits in the layer between the client and the database."
+
+  - word: format
+    pos: noun
+    meaning: The stated arrangement or encoding of data.
+    instead_of: [layout, structure, encoding scheme]
+    example: "The API returns data in JSON format."
+
+  - word: range
+    pos: noun
+    meaning: The full span between a lowest and a highest value.
+    instead_of: [span, spread]
+    example: "The field accepts a value in the range one to one hundred."
+    note: >
+      `interval` is not collapsed. A scrape interval says how often a thing happens,
+      and a range is a span between two values.
+
+  - word: speed
+    pos: noun
+    meaning: How fast something happens, measured over time.
+    instead_of: [velocity, pace, tempo]
+    example: "The new index improves the speed of the query."
+
+  - word: cover
+    pos: verb
+    meaning: To include or to deal with a stated case or topic.
+    forms: [cover, covers, covered]
+    instead_of: [encompass, span]
+    example: "The test suite covers every error path in the parser."
+    note: >
+      `address` is not collapsed here. Every use in the corpus is an IP address or a
+      domain name, which is a noun, and this entry maps it to a verb.
+
+  - word: fit
+    pos: verb
+    meaning: To be the right size, shape, or form for something.
+    forms: [fit, fits, fitted]
+    instead_of: [conform to, correspond to, suit]
+    example: "The value must fit in a 32-bit integer."
+
+  # ---- Final batch: adjectives -------------------------------------------------
+  - word: active
+    pos: adjective
+    meaning: Working or in operation at the present time.
+    instead_of: [in effect, operational]
+    example: "The account stays active until the user cancels it."
+    note: >
+      `live` is not collapsed. Every use in the corpus was a verb or an attributive
+      adjective: a connection lives for the lifetime of a node, and a live
+      indicator shows progress. Neither one means active.
+
+  - word: local
+    pos: adjective
+    meaning: On the same machine or in the same place as the reader.
+    instead_of: [on-premises, on-device]
+    example: "Run the test suite on a local copy of the database."
+
+  - word: remote
+    pos: adjective
+    meaning: On a different machine, reached over a network.
+    instead_of: [off-site, networked]
+    example: "The client reads the file from a remote server."
+
+  - word: default
+    pos: adjective
+    meaning: Used automatically when no other value is given.
+    instead_of: [standard, out-of-the-box, preset]
+    example: "The timeout uses a default value of ten seconds."
+    note: "`default` also stays as a term noun for the value itself."
+
+  - word: manual
+    pos: adjective
+    meaning: Done by a person, not by a program.
+    instead_of: [hand-operated, non-automatic]
+    example: "The team runs a manual check before every release."
+
+  - word: automatic
+    pos: adjective
+    meaning: Done by a program, with no action from a person.
+    instead_of: [automated, self-acting]
+    example: "The pipeline runs an automatic test after every commit."
+
+  - word: equal
+    pos: adjective
+    meaning: The same in amount or in value as something else.
+    instead_of: [identical in value, equivalent in amount]
+    example: "The two totals are equal after the rounding fix."
+
+  - word: long
+    pos: adjective
+    meaning: Great in length, in distance, or in duration.
+    instead_of: [lengthy, extended, prolonged]
+    example: "The request takes a long time when the cache is cold."
+
+  - word: short
+    pos: adjective
+    meaning: Small in length, in distance, or in duration.
+    instead_of: [brief, abbreviated, curtailed]
+    example: "The token has a short lifetime of five minutes."
+
+  - word: wide
+    pos: adjective
+    meaning: Large from one side to the other, or covering many cases.
+    instead_of: [broad, extensive, far-reaching]
+    example: "The library gives wide support for date formats."
+
+  - word: deep
+    pos: adjective
+    meaning: Going far down, or reaching far into detail.
+    instead_of: [thorough, in-depth, extensive]
+    example: "The tool gives a deep view of the call stack."
+
+  - word: constant
+    pos: adjective
+    meaning: Not changing over time.
+    instead_of: [unchanging, invariant]
+    example: "The service keeps a constant connection to the database."
+    note: >
+      `constant` also stays as a term noun for a fixed value in code. `fixed`
+      stays approved separately, elsewhere in this file, as the past form of
+      `fix`; the linter matches by spelling only, so it cannot also route to
+      `constant` here.
+
+  - word: dependent
+    pos: adjective
+    meaning: Needing something else in order to work.
+    instead_of: [contingent, reliant]
+    example: "The test is dependent on a running database."
+
+  - word: independent
+    pos: adjective
+    meaning: Not needing something else in order to work.
+    instead_of: [self-contained, standalone, autonomous]
+    example: "Each test runs independent of the others."
+
+  # ---- Final batch: verbs -------------------------------------------------------
+  - word: reach
+    pos: verb
+    meaning: To arrive at a stated point, state, or value.
+    forms: [reach, reaches, reached]
+    instead_of: [attain, arrive at]
+    example: "The counter reaches the limit after one thousand requests."
+
+  - word: gain
+    pos: verb
+    meaning: To come to have more of something.
+    forms: [gain, gains, gained]
+    instead_of: [acquire, accrue]
+    example: "The cache gains a higher hit rate after the change."
+
+  - word: lose
+    pos: verb
+    meaning: To no longer have something that was there before.
+    forms: [lose, loses, lost]
+    instead_of: [forfeit, misplace]
+    example: "The client loses the connection when the network fails."
+
+  - word: rise
+    pos: verb
+    meaning: To move to a higher value or level.
+    forms: [rise, rises, rose, risen]
+    instead_of: [climb, escalate, spike]
+    example: "The error rate rises after the deployment."
+
+  - word: fall
+    pos: verb
+    meaning: To move to a lower value or level.
+    forms: [fall, falls, fell, fallen]
+    instead_of: [drop, decline, plummet]
+    example: "The queue length falls after the worker restarts."
+
+  - word: appear
+    pos: verb
+    meaning: To become visible or to start to exist, where it did not before.
+    forms: [appear, appears, appeared]
+    instead_of: [emerge, manifest, materialize]
+    example: "A new row appears in the table after every request."
+    note: >
+      This entry covers the literal sense only. The hedging sense ("it appears
+      that") is not approved; see the hedges list at the bottom of this file.
+
+  - word: remain
+    pos: verb
+    meaning: To stay in a stated state or place.
+    forms: [remain, remains, remained]
+    instead_of: [persist in, stay put]
+    example: "The connection remains open until the client closes it."
+
+  - word: differ
+    pos: verb
+    meaning: To not be the same as something else.
+    forms: [differ, differs, differed]
+    instead_of: [diverge, vary, deviate]
+    example: "The staging config differs from the production config."
+
+  # ---- Words with no approved use ---------------------------------------------
+  - word: null
+    pos: none
+    meaning: null
+    instead_of:
+      - it is important to note
+      - it should be noted
+      - it is worth noting
+      - please note that
+      - as mentioned above
+      - as noted above
+      - needless to say
+      - basically
+      - essentially
+      - actually
+      - simply
+      - just
+      - really
+      - very
+      - quite
+      - somewhat
+      - fairly
+      - rather
+      - arguably
+      - obviously
+      - clearly
+      - of course
+      - naturally
+    example: null
+    note: >
+      Filler and hedging. Delete these outright; they have no approved replacement.
+      A writer who needs to signal uncertainty states it once under PSTE-L1.
+
+marketing_adjectives:
+  # PSTE-V9. No approved alternative; delete the word and state the property.
+  - seamless
+  - seamlessly
+  - robust
+  - powerful
+  - cutting-edge
+  - effortless
+  - effortlessly
+  - world-class
+  - next-generation
+  - revolutionary
+  - blazing
+  - blazingly
+  - lightning-fast
+  - elegant
+  - delightful
+  - turnkey
+  - best-in-class
+  - state-of-the-art
+  - game-changing
+  - first-class
+  - battle-tested
+  - enterprise-grade
+  - production-grade
+  - supercharge
+  - unlock
+  - unleash
+  - empower
+  - rich
+  - comprehensive
+  - intuitive
+  - modern
+  - beautiful
+  - innovative
+  - disruptive
+  - frictionless
+  - streamlined
+  - unparalleled
+  - unmatched
+  - unrivaled
+  - best-of-breed
+  - mission-critical
+  - future-proof
+  - bulletproof
+  - rock-solid
+  - lightweight
+  - scalable
+  - flexible
+  - agile
+  - synergistic
+  - holistic
+  - transformative
+  - groundbreaking
+  - industry-leading
+  - award-winning
+  - user-friendly
+  - hassle-free
+  - out-of-the-box
+  - plug-and-play
+  - one-stop
+  - all-in-one
+  - super
+  - amazing
+  - awesome
+  - incredible
+  - stunning
+  - world-beating
+  - premier
+  - ultimate
+  - magical
+  - magic
+  - effortlessly-simple
+  - zero-effort
+  - painless
+  # `instant` is not marketing. Every use in the corpus is a PromQL instant
+  # query or an instant vector, which name a type. `instantly` stays, because a
+  # claim that something happens instantly is the hype this list catches.
+  - instantly
+  - blindingly
+  - screaming
+  - screamingly
+  - insanely
+  - ridiculously
+  - wildly
+  - radically
+  - paradigm-shifting
+  - bleeding-edge
+  - battle-hardened
+  - enterprise-ready
+  - cloud-native
+  - AI-powered
+  - next-gen
+  - turbocharged
+  - supercharged
+  - sleek
+  - gorgeous
+  - polished
+  - pristine
+  - flawless
+  - seamless-integration
+  - fastest
+  - easiest
+  - simplest
+  - smartest
+  - richest
+  - deepest
+  - unbeatable
+  - unstoppable
+  - limitless
+  - boundless
+  - endless
+  - infinite
+  - revolutionise
+  - revolutionize
+  - elevate
+  - amplify
+  - leverage
+  - democratize
+  - democratise
+  - reimagine
+  - rethink
+
+phrasal_verbs:
+  # PSTE-G8. Each maps to an approved single verb.
+  spin up: start
+  spin down: stop
+  fire up: start
+  kick off: start
+  tear down: stop
+  bring up: start
+  bring down: stop
+  reach out: ask
+  dive into: read
+  drill down: check
+  circle back: return
+  roll out: deploy
+  ramp up: increase
+  wrap up: end
+  sort out: correct
+  take care of: correct
+  get rid of: remove
+  set up: install
+  hook up: connect
+  wire up: connect
+  reach out to: ask
+  follow up: ask
+  check in: ask
+  find out: find
+  look into: check
+  put together: build
+  come up with: build
+  hand off: pass
+  hand over: give
+  carry out: do
+  go ahead: start
+  hold off: wait
+  hold on: wait
+  cut down: split
+  break down: split
+  make do: use
+  point out: show
+  bring about: cause
+  go through: read
+  go over: check
+  take on: accept
+  turn on: enable
+  turn off: disable
+  send out: send
+  send off: send
+  keep on: continue
+  carry on: continue
+  give up: stop
+  call off: stop
+  put off: wait
+  bang out: write
+  blow away: delete
+  blow up: fail
+  boot up: start
+  break out: separate
+  bubble up: show
+  carve out: separate
+  churn out: write
+  clean up: remove
+  close out: end
+  crank out: write
+  cut over: change
+  dig into: read
+  fail over: change
+  fall back: revert
+  fall through: fail
+  figure out: find
+  fill in: complete
+  fill out: complete
+  filter out: remove
+  flag up: show
+  flesh out: complete
+  gear up: start
+  get around to: do
+  go about: do
+  hang up: stop
+  hash out: choose
+  hook into: connect
+  iron out: correct
+  knock out: end
+  line up: set
+  lock down: limit
+  lock up: stop
+  look over: check
+  look through: check
+  loop in: tell
+  nail down: choose
+  opt in: accept
+  opt out: reject
+  patch up: correct
+  phase in: add
+  phase out: remove
+  pin down: choose
+  plug into: connect
+  power down: stop
+  power up: start
+  pull down: get
+  pull in: get
+  push up: send
+  roll back: revert
+  roll forward: apply
+  round off: end
+  scale down: reduce
+  scale out: add
+  scale up: increase
+  ship out: release
+  shut down: stop
+  sign off: accept
+  sign up: join
+  smooth over: correct
+  spin off: separate
+  split out: separate
+  stand up: start
+  start up: start
+  surface up: show
+  suss out: find
+  tee up: start
+  throw away: delete
+  tidy up: remove
+  tie into: connect
+  touch base: ask
+  weed out: remove
+  wind down: stop
+  wind up: end
+  wipe out: delete
+  wire into: connect
+  work out: find
+  zero out: clear
+
+latin_abbreviations:
+  # PSTE-V8.
+  e.g.: for example
+  i.e.: that is
+  etc.: and others
+  viz.: namely
+  cf.: compare
+  et al.: and others
+  N.B.: note
+  ca.: about
+  vs.: against
+  ibid.: same source
+  op. cit.: cited work
+  q.v.: see that
+  per se: by itself
+  a priori: before the fact
+  ad hoc: for this case
+  de facto: in practice
+  et seq.: and following
+  bona fide: genuine
+  circa: about
+  de jure: by law
+  eg: for example
+  et cetera: and others
+  etc: and others
+  ex ante: before
+  ex post: after
+  ie: that is
+  in situ: in place
+  in toto: in total
+  infra: below
+  inter alia: among other things
+  modus operandi: method
+  mutatis mutandis: with the necessary changes
+  nb: note
+  pace: contrary to
+  passim: throughout
+  per annum: each year
+  per capita: for each person
+  prima facie: at first sight
+  pro rata: in proportion
+  sensu stricto: strictly
+  sic: as written
+  status quo: the current state
+  supra: above
+  versus: compared with
+  vice versa: the other way round
+  vs: compared with
+
+american_british:
+  # PSTE-V7. British spelling -> American spelling. Covers the common pairs: -ise/
+  # -ize, -isation/-ization, -our/-or, -re/-er, -ce/-se, -ogue/-og, doubled-l.
+  # A literal list, the same shape as latin_abbreviations above, because a suffix
+  # rule would also rewrite a word that is not a British/American pair at all
+  # (e.g. "centre" and "centre stage" share -re but "acre" is not a spelling
+  # variant of anything).
+  organise: organize
+  organised: organized
+  organises: organizes
+  organising: organizing
+  organisation: organization
+  organisations: organizations
+  recognise: recognize
+  recognised: recognized
+  recognises: recognizes
+  recognising: recognizing
+  realise: realize
+  realised: realized
+  realises: realizes
+  realising: realizing
+  optimise: optimize
+  optimised: optimized
+  optimises: optimizes
+  optimising: optimizing
+  customise: customize
+  customised: customized
+  customises: customizes
+  customising: customizing
+  initialise: initialize
+  initialised: initialized
+  initialises: initializes
+  initialising: initializing
+  serialise: serialize
+  serialised: serialized
+  serialises: serializes
+  serialising: serializing
+  authorise: authorize
+  authorised: authorized
+  authorises: authorizes
+  authorising: authorizing
+  minimise: minimize
+  minimised: minimized
+  minimises: minimizes
+  minimising: minimizing
+  maximise: maximize
+  maximised: maximized
+  maximises: maximizes
+  maximising: maximizing
+  standardise: standardize
+  standardised: standardized
+  standardises: standardizes
+  standardising: standardizing
+  synchronise: synchronize
+  synchronised: synchronized
+  synchronises: synchronizes
+  synchronising: synchronizing
+  colour: color
+  colours: colors
+  coloured: colored
+  colouring: coloring
+  behaviour: behavior
+  behaviours: behaviors
+  behavioural: behavioral
+  favour: favor
+  favours: favors
+  favoured: favored
+  favourite: favorite
+  neighbour: neighbor
+  neighbours: neighbors
+  labour: labor
+  labours: labors
+  laboured: labored
+  centre: center
+  centres: centers
+  centred: centered
+  metre: meter
+  metres: meters
+  fibre: fiber
+  fibres: fibers
+  litre: liter
+  litres: liters
+  theatre: theater
+  theatres: theaters
+  licence: license
+  licences: licenses
+  licenced: licensed
+  defence: defense
+  defences: defenses
+  offence: offense
+  offences: offenses
+  pretence: pretense
+  catalogue: catalog
+  catalogues: catalogs
+  catalogued: cataloged
+  dialogue: dialog
+  dialogues: dialogs
+  analogue: analog
+  travelled: traveled
+  travelling: traveling
+  traveller: traveler
+  travellers: travelers
+  cancelled: canceled
+  cancelling: canceling
+  modelled: modeled
+  modelling: modeling
+  labelled: labeled
+  labelling: labeling
+  signalled: signaled
+  signalling: signaling
+
+hedges:
+  # PSTE-L1. Permitted once per claim, never stacked.
+  - might
+  - may
+  - could
+  - possibly
+  - perhaps
+  - probably
+  - likely
+  - seems
+  - appears
+  - suggests
+  - I think
+  - I believe
+  - it is possible that
+  - to some extent
+  - more or less
+  - it would seem
+  - one might argue
+  - in some cases
+  - generally speaking
+  - as far as I know
+  - to a degree
+  - somewhat likely
+  - in a sense
+
+response_frames:
+  # PSTE-L5. A frame announces or closes a response and states no fact. Delete it.
+  # Position matters: these are findings at the start or the end of a text, not
+  # everywhere. `pste_lint.py` applies that restriction; the list is only the phrases.
+  #
+  # openers
+  - great question
+  - good question
+  - excellent question
+  - that is a great question
+  - let me look into that
+  - let me start by
+  - let me explain
+  - let me help
+  - i will start by
+  - i would be happy to
+  - happy to help
+  - to answer your question
+  - as an ai
+  - sure thing
+  - certainly
+  - of course
+  - absolutely
+  - looking at your
+  # closers
+  - let me know if you need anything else
+  - let me know if you have any questions
+  - let me know if that helps
+  - hope this helps
+  - hope that helps
+  - i hope this helps
+  - feel free to ask
+  - feel free to reach out
+  - do not hesitate to ask
+  - happy to clarify
+  - anything else
+  - is there anything else

@@ -1,0 +1,16 @@
+# Credentials. NEVER COMMIT THESE.
+# `.env` holds the token that the eval container authenticates with. A committed
+# credential is a leaked credential, whatever happens to the commit afterwards.
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+
+# macOS
+.DS_Store

@@ -1,0 +1,79 @@
+rule,weight,reason
+PSTE-A1,1.0,PSTE-A1 states it defeats every other rule in this specification; losing a fact is the one fault the standard ranks above all others.
+PSTE-A2,1.0,PSTE-A2 exists only to test whether PSTE-A1 applies; failing it means a fact was removed without the check that PSTE-A1 requires.
+PSTE-A3,1.0,PSTE-A3 exists only to keep PSTE-A1's precision intact before a limit is allowed to win; failing it means precision lost that a split sentence could have kept.
+PSTE-C1,0.5,"MUST rule on document form: a missing conformance level is a process omission, not a content loss."
+PSTE-C2,0.5,"MUST rule on tool form: a report that omits the level or the rule identifier is an omission in reporting, not in the prose itself."
+PSTE-C3,0.1,"SHOULD rule: a default level choice, weak by the standard's own key word."
+PSTE-C6,0.5,"MUST rule on tool form: the verdict computation is a process rule, not a content fault in the prose."
+PSTE-C7,0.5,"MUST rule on tool form: a wrong word count changes a verdict's arithmetic, not a fact in the text."
+PSTE-C8,0.5,"MUST rule on tool form: reporting a score instead of a verdict is a reporting-shape fault, not a content loss."
+PSTE-D1,0.5,"MUST rule governing paragraph form: one topic per paragraph is a structure requirement, not a fact at risk."
+PSTE-D2,0.5,MUST rule governing paragraph form: the six-sentence limit is a length rule like PSTE-N1 and PSTE-N2.
+PSTE-D3,0.5,"MUST rule governing procedure form: the wrong list type for a sequence is a presentation fault, not a lost fact."
+PSTE-D4,0.5,"MUST rule governing list form: the wrong list type for parallel items is a presentation fault, not a lost fact."
+PSTE-D5,0.5,MUST rule governing structure: hiding a sequence in one sentence is a form fault. PSTE-A1 already covers the case where a fact is lost doing it.
+PSTE-D6,0.5,"MUST rule governing order: the wrong order of information is a readability fault, not a missing fact."
+PSTE-D7,0.5,"MUST rule governing list form: too many items in one list is a presentation fault. The standard calls it a lost heading, not a lost fact."
+PSTE-D7.1,0.5,"MUST rule governing list form: not stating a list is exhaustive is a missing label on the list, not a missing item."
+PSTE-D8,0.5,"MUST rule governing document form: an unfinished topic is a structure fault, not a lost fact."
+PSTE-G1,0.5,"MUST rule governing grammar: passive voice drops the actor. The standard calls this a readability loss, not a fact loss under PSTE-A1."
+PSTE-G2,0.5,The MUST NOT clause forbids passive voice in an instruction. Same basis as PSTE-G1: an actor goes missing from a command.
+PSTE-G3,0.5,"MUST rule restricting verb forms to a closed set. A form outside the set is a grammar fault, not a content fault."
+PSTE-G4,0.5,"MUST rule governing tense: a perfect tense is a grammar fault. The rule's own example shows a paraphrase, and no fact changes."
+PSTE-G5,0.5,"MUST rule governing grammar: stacked auxiliaries are a parsing-difficulty fault, not a fact at risk."
+PSTE-G6,0.5,MUST rule governing grammar: an -ing main verb is a form fault. The rule allows the same form as a noun part elsewhere.
+PSTE-G7,0.5,MUST rule governing grammar: a nominalization restates the same action as a noun. The rule's own example adds and removes no fact.
+PSTE-G8,0.5,"MUST rule governing grammar: a phrasal verb has a single-verb replacement in Appendix C, so the meaning survives and only the form changes."
+PSTE-G9,0.5,MUST rule governing grammar: a missing article is a grammar fault. The rule's own example states the same fact either way.
+PSTE-G10,0.1,"Checker runs this at SHOULD. It flags a common and often-correct pattern for a human to confirm, and does not fail a document on a hit alone."
+PSTE-G11,0.5,"MUST rule governing grammar: too many adjectives is a parsing-load fault for a non-native reader, not a lost fact."
+PSTE-G12,0.5,MUST rule governing grammar: wrong adjective order reads as wrong without changing what the adjectives describe.
+PSTE-K1,0.5,"MUST rule governing how a rule is written: a malformed negation of a key word is a form fault in stating the requirement, not in its content."
+PSTE-K2,0.5,MUST rule governing how a rule is written: an unnamed actor is a form fault in the rule statement.
+PSTE-K3,0.5,MUST rule governing how a rule is written: a key word used for a fact rather than a requirement is a category fault in form.
+PSTE-K4,0.5,"MUST rule governing process: skipping the checker is a process omission. It raises the risk that other faults survive uncaught, but is not itself a content fault."
+PSTE-K5,0.5,MUST rule governing process: checking accuracy out of order is a process fault. PSTE-A1 already carries the weight of an actual fact lost.
+PSTE-L1,0.5,"MUST rule governing clarity: stacked hedging is a precision-of-expression fault that the standard says tells the reader less, not a removed fact."
+PSTE-L2,0.5,"MUST rule governing clarity: filler text carries no information by the rule's own wording, so removing it loses nothing."
+PSTE-L3,0.5,MUST rule governing order: stating the explanation before the result is a sequencing fault. The fact itself is still present.
+PSTE-L4,0.5,"MUST rule governing clarity: the same fact stated twice is redundant, not lost. The second statement is the fault, not the first."
+PSTE-L5,0.5,"MUST rule governing clarity: a frame phrase states no fact by the rule's own wording, so it has nothing to lose."
+PSTE-N1,0.5,"MUST rule governing sentence form: an instruction over the word limit is a length fault, not a dropped fact."
+PSTE-N2,0.5,"MUST rule governing sentence form: a description over the word limit is a length fault, not a dropped fact."
+PSTE-N3,0.5,MUST rule governing sentence form: a contraction is a register fault. The rule's own example shows the identical meaning spelled out.
+PSTE-N4,0.5,"MUST rule governing sentence form: omitting the subject, the verb, or an article is a grammar fault. PSTE-A1 escalates it further only if a fact is dropped too."
+PSTE-N5,0.5,MUST rule governing noun form: a multi-word noun over three words is a parsing-load fault. The rule's own example shows the same meaning in more words.
+PSTE-N6,0.5,"MUST rule governing sentence form: two instructions in one sentence is a form fault, not a missing instruction."
+PSTE-N7,0.5,"MUST rule governing how a tool counts words: a miscounted word changes a limit's arithmetic, not the text's content."
+PSTE-P1,0.5,"MUST rule governing procedure form: a non-imperative instruction is a form fault. The rule's own example keeps the same command, worded differently."
+PSTE-P2,0.5,"MUST rule governing procedure form: a misplaced condition is an order fault, not a missing condition. PSTE-A1 covers an actually dropped condition."
+PSTE-P3,0.5,MUST rule governing procedure form: an instruction placed inside a note is a structure fault that risks the reader skipping a command meant to be followed.
+PSTE-P4,0.5,"MUST rule governing procedure form: an unstated expected result leaves the reader unable to confirm success. A readability fault, not a missing fact in the step."
+PSTE-S1,0.5,"MUST rule governing scope of application: applying PSTE rules outside target T1 is a scope fault, not a content fault."
+PSTE-S2,0.8,"A writer MUST reproduce quoted text and code character for character. The reader acts on this text as given, and a silent change is harder to detect than an obvious one."
+PSTE-S3,0.5,"MUST rule governing how non-conforming quotes are marked: mislabelling a quote as a conformance failure is a process fault in the check, not a change to the quote."
+PSTE-S4,0.8,An inflected identifier is no longer the literal string the reader must use verbatim against code or a command line. A reader who trusts it acts on a name that does not exist.
+PSTE-S5,0.1,SHOULD rule: a missing code span is a formatting preference. The identifier text itself is unchanged.
+PSTE-S6,N/A,"PSTE-S6 is MAY only, a permission with no obligation. There is no action a writer can take that breaks it."
+PSTE-S7,N/A,"PSTE-S7 is MAY only, a permission with no obligation. There is no action a writer can take that breaks it."
+PSTE-V1,0.3,"MUST rule on word choice: an out-of-set word is understood by the reader, just not the approved form PSTE-V2 assigns it."
+PSTE-V2,0.5,MUST rule governing meaning: an approved word used with the wrong meaning or part of speech breaks the one-word-one-meaning guarantee PSTE-V1 relies on.
+PSTE-V3,0.3,"MUST rule on word choice: the rule's own example shows synonyms the reader already understands. The fault is rotation, not lost meaning."
+PSTE-V4,0.5,"MUST rule governing identity: a renamed entity forces the reader to match two names to the same thing in the code, a precision fault PSTE-V1 alone does not cover."
+PSTE-V5,0.3,MUST rule on word choice: a coined term where an approved word already states the meaning accurately is the word-choice fault PSTE-V1 targets.
+PSTE-V6,0.3,"MUST rule on word choice: a term noun used as a verb, or the reverse, is understood from context. The part of speech is the only fault."
+PSTE-V7,0.3,"MUST rule on word choice: British and American spellings name the same word, so the fault is spelling convention, not meaning."
+PSTE-V8,0.3,"MUST rule on word choice: a Latin abbreviation is understood by most readers. The rule exists for the reader who is not one of them, not because meaning is lost."
+PSTE-V9,0.3,"MUST rule on word choice: a marketing adjective such as robust or seamless states an opinion the reader discounts, not a fact the reader loses."
+PSTE-V10,0.5,"MUST rule governing meaning: the four modal meanings are genuinely different, so the wrong modal verb can flip what a sentence requires. A precision fault closer to form than to word choice."
+PSTE-W1,0.8,"A writer MUST warn before an operation that destroys data or is not reversible. A reader who is not warned runs the command, and the damage is exactly what the warning exists to prevent."
+PSTE-W2,0.8,A writer MUST state the scope of the effect before the command. A reader who runs the command first and reads the scope after has already caused the effect.
+PSTE-W3,0.8,A writer MUST identify the level of risk with a word. A reader who cannot tell a warning from a caution misjudges how much care the action needs.
+PSTE-W4,0.8,A writer MUST state the specific result of the risk. A vague risk statement such as this can cause problems gives the reader nothing to act on before the damage happens.
+PSTE-W5,N/A,"PSTE-W5 is MAY only, a permission to exceed a limit for a warning. There is no action a writer can take that breaks it."
+PSTE-X1,0.1,"A semicolon is punctuation. PSTE-X2 permits every other standard mark, so this is the narrowest of the punctuation rules."
+PSTE-X2,N/A,"PSTE-X2 is MAY only, a permission to use any other standard punctuation mark. There is no action a writer can take that breaks it."
+PSTE-X3,0.1,"A missing hyphen on a compound modifier is a punctuation fault. The words and their meaning are unchanged, only momentarily harder to parse."
+PSTE-X4,0.1,Parentheses used for a second idea are a punctuation and structure fault at the weak end of the scale. PSTE-X4 still permits them for a reference or an abbreviation.
+PSTE-X5,0.1,"PSTE-X5 is itself a SHOULD rule, and the standard notes it is not even an aerospace rule, added only because the em dash marks unedited machine prose."

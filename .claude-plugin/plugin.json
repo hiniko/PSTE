@@ -1,0 +1,46 @@
+{
+  "name": "pste",
+  "version": "0.1.0",
+  "description": "Programming Simplified Technical English. Writes user-facing prose in a controlled English that is easier to read and easier to share.",
+  "author": "Sherman Rose",
+  "license": "MIT",
+  "homepage": "https://github.com/hiniko/PSTE",
+  "keywords": [
+    "writing",
+    "controlled-english",
+    "documentation",
+    "readability",
+    "style"
+  ],
+  "skills": [
+    "./skill"
+  ],
+  "commands": [
+    "./skill/commands"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/skill/hooks/pste-activate.js\"",
+            "timeout": 5,
+            "statusMessage": "Loading PSTE rules..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/skill/hooks/pste-tracker.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
