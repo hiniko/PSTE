@@ -9,7 +9,7 @@ Date of the survey: 2026-08-02.
 
 ## All tooling lives in evals/
 
-Every checker and measure in this repository is verification tooling. Nothing here
+Every rule check and measure in this repository is verification tooling. Nothing here
 is distributed as an independent product, so nothing here needs to stay dependency-free
 for a consumer's sake. `evals/pste_lint.py` happens to have no dependencies, because a
 regular expression does not need one, not because a distribution rule requires it. <!-- pste-lint: ignore -->
@@ -46,8 +46,8 @@ with the short-word rules, because common English words tend to be short. The de
 below shows the independence is real.
 
 **Demonstration.** A passage of short sentences built from rare Latinate words
-scores **0 findings** in the rule checker and **5.26 percent** coverage here. The
-rule checker cannot see this gap at all. This measure fills it.
+scores **0 findings** in the rule rule check and **5.26 percent** coverage here. The
+rule rule check cannot see this gap at all. This measure fills it.
 
 ### Fact preservation — `evals/faithfulness.py`
 
@@ -55,9 +55,9 @@ Compares a source with its rewrite and reports every number, unit, identifier,
 negation, obligation, condition, and scope word that the rewrite lost or changed.
 
 **Why this one first.** Rule PSTE-A1 says that accuracy defeats every other rule,
-and nothing enforced it. The rule checker made that worse: a rewrite that
+and nothing enforced it. The rule rule check made that worse: a rewrite that
 drops a fact has fewer words to break a rule with, so it scores **better**. The
-checker rewarded the failure that the standard most fears. <!-- pste-lint: ignore -->
+rule check rewarded the failure that the standard most fears. <!-- pste-lint: ignore -->
 
 **Why every check is deterministic and not a model.** Entailment models score a
 rewrite as faithful after a number changes (Park 2019). A rewrite that turns 30
@@ -65,7 +65,7 @@ seconds into 300 seconds is the exact error this project must catch. So the
 numeric checks are string comparisons. <!-- pste-lint: ignore -->
 
 **Demonstration.** A rewrite that reads well and scores 1 finding in the rule
-checker lost the rate limit, the status code, and the header name. It also lost a <!-- pste-lint: ignore -->
+rule check lost the rate limit, the status code, and the header name. It also lost a <!-- pste-lint: ignore -->
 prohibition and the scope of a statement. This script reports all five.
 
 ## Rejected, with reasons
@@ -75,7 +75,7 @@ prohibition and the scope of a statement. This script reports all five.
 Flesch-Kincaid, Flesch Reading Ease, Gunning Fog, SMOG, Coleman-Liau, ARI, LIX, RIX,
 and Linsear Write are all functions of word length and sentence length. PSTE-1 sets
 limits on word length and sentence length. Reporting them as support for the
-standard would restate the rule checker in another form. <!-- pste-lint: ignore -->
+standard would restate the rule rule check in another form. <!-- pste-lint: ignore -->
 
 Two further reasons:
 
@@ -171,10 +171,10 @@ auditable and needs nothing, but it is a floor instead of a graded scale.
 - **Tool:** `wordfreq` (MIT). Gives a Zipf frequency per word, so coverage becomes a <!-- pste-lint: ignore -->
   curve instead of a yes or no.
 - **Cost:** about 57 MB. This is exactly why it cannot go in the distributed
-  checker, and exactly why it is fine here.
+  rule check, and exactly why it is fine here.
 - **What it adds:** graded bands instead of one limit, and a check on whether
   the hand-built list is missing common words.
-- **Keep both.** The hand-built list stays the default so the checker runs with
+- **Keep both.** The hand-built list stays the default so the rule check runs with
   nothing installed. The corpus version becomes a CI-only cross-check.
 
 ### Dale-Chall with this project's own word list
@@ -238,6 +238,108 @@ Failure modes to control for:
 
 Building this needs API calls per run, so it belongs with the trial instead of in
 the offline checks.
+
+## The conversational use: what the first measurement found
+
+Date of this measurement: 2026-09-12.
+
+PSTE has two uses, and only one of them is tested.
+
+The tested use rewrites a document that already exists, in one pass. The corpus in
+`evals/corpus/` measures it, and the numbers on the site come from it.
+
+The second use governs what an agent writes back to a person, turn after turn, for a
+whole session. A plugin loads the rules once at the start, and re-states a short
+reminder on every turn. This use was never measured until now. `evals/conversation.py`
+measures it, against a question set pinned in `evals/conversations/`.
+
+### What the run did
+
+Fifty questions, asked in order, from HTTP down through TLS, TCP, IP, the link layer,
+the operating system, and into debugging. Two arms answered the same fifty. One arm
+read the rules first. The other never saw them. Neither arm revised a response
+after it wrote one, and neither ran any tool over its own text.
+
+A separate agent wrote the questions. A rule stopped that agent from naming writing
+or style. A question that asks for plain prose prompts the register under test.
+
+Result: `evals/sessions/conversation-http-stack-long-40dbd48.json`.
+
+### What it found
+
+| | with PSTE | without |
+|---|---|---|
+| words | 8,586 | 12,992 |
+| violations | 348 | 1,115 |
+| violations per 100 words | 4.05 | 8.58 |
+| first third of the session | 2.97 | 9.09 |
+| middle third | 4.39 | 8.26 |
+| last third | 4.42 | 8.45 |
+
+The rate rises across the first third, then holds. Middle to last moves by 0.03. That is no change at all. It is a step, not a slope. The arm without the rules is flat across the
+whole session, so the questions did not get harder as the session ran on.
+
+The step settles at a rate far above the one-pass result. So the conversational use
+works, and it works measurably less well than the document use.
+
+### What a short run got wrong
+
+An eight-turn run of the same shape reported a slope of +0.2668 violations per 100 words
+per turn. The fifty-turn run reports +0.0496, which is five times shallower. The short
+run caught the early step and read it as a trend that would continue.
+
+The lesson generalises past this measure: a slope from a short conversation is not
+evidence. `evals/conversation.py` reports a slope with the scatter of its own fit for
+this reason. The scatter is still wider than the slope at fifty turns. Read the
+thirds, not the line.
+
+### What is not known
+
+Nothing here explains the step. Two ideas are worth testing, and neither has support
+beyond the shape above:
+
+- The rule set may be larger than a model holds in attention across a long session.
+  `skill/SKILL.md` is 16,617 characters, and the session hook writes all of it.
+- The per-turn reminder may be too long to anchor anything. It is 574 characters, and
+  it re-states every rule in miniature on every turn. <!-- pste-lint: ignore -->
+
+### What a comparable tool does
+
+`caveman`, a Claude Code plugin of the same shape, carries this comment in its own
+activation hook:
+
+> The old 2-sentence summary was too weak — models drifted back to verbose
+> mid-conversation, especially after context compression pruned it away. Full rules
+> with examples anchor behavior much more reliably.
+
+So a short summary fails, and somebody else found that independently. That plugin's
+whole rule set is 3,653 characters against this project's 16,617. It can re-state
+everything cheaply where this project cannot. The comparison does not prove a cause. It
+does show that this is not unique to PSTE, and that a smaller rule set is easier
+to hold in view.
+
+### Worth building next, in order
+
+1. **A second run of the same pinned questions.** The question set is committed, so a
+   second run changes only the prose. This shows whether the step reproduces, which
+   nothing else can settle.
+2. **A shorter per-turn reminder.** Name only the rules that break most often. The
+   fifty-turn run says those are PSTE-N2, PSTE-N5 and PSTE-V3. Measure against the same
+   questions.
+3. **A smaller session payload.** The hook writes the rules, the reasons, and the
+   examples. Try the rules alone.
+4. **Progressive disclosure.** Load a section of the rules when the text needs it. This
+   needs a way to know when it is needed, and nothing here solves that.
+5. **Re-stating a section every few turns**, instead of the same reminder every turn.
+6. **A test that survives compaction.** A subagent never compacts, so no measurement in
+   this directory reaches the case the session hook was written for. This one needs a
+   person in a real session.
+
+### What this does not measure
+
+None of the above shows whether a reader understands the text better. It counts rule
+violations, which is what a rule check counts. The trial below is the thing that would
+settle the reader question, and it has not run.
 
 ## Standing warning
 
